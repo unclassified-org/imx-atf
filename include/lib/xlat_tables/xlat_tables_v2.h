@@ -22,7 +22,13 @@
 /* Helper macro to define entries for mmap_region_t. It allows to
  * re-map address mappings from 'pa' to 'va' for each region.
  */
-#define MAP_REGION(pa, va, sz, attr) {(pa), (va), (sz), (attr)}
+#define MAP_REGION(pa, va, sz, attr) {pa, va, sz, attr, sz}
+
+/* Helper macro to define entries for mmap_region_t. It allows to
+ * re-map address mappings from 'pa' to 'va' for each region and specify
+ * the desired granularity of translation table to use.
+ */
+#define MAP_REGION_GRANULARITY(pa, va, sz, attr, gr) {pa, va, sz, attr, gr}
 
 /*
  * Shifts and masks to access fields of an mmap_attr_t
@@ -80,6 +86,15 @@ typedef struct mmap_region {
 	uintptr_t		base_va;
 	size_t			size;
 	mmap_attr_t		attr;
+
+	/*
+	 * The granularity field is used by the mapping routine to know up to
+	 * which translation level it is needed to split a region. This is
+	 * useful if its attributes may change in the future because no further
+	 * splitting would be needed and no more space would be required to
+	 * change the attributes.
+	 */
+	size_t			granularity;
 } mmap_region_t;
 
 /* Opaque handle type on a translation context */
@@ -111,7 +126,7 @@ void mmap_add_region(unsigned long long base_pa, uintptr_t base_va,
 				size_t size, mmap_attr_t attr);
 void mmap_add_region_ctx(xlat_ctx_handle_t ctx_handle,
 			unsigned long long base_pa, uintptr_t base_va,
-			size_t size, mmap_attr_t attr);
+			 size_t size, mmap_attr_t attr, size_t granularity);
 
 /*
  * Add an array of static regions with defined base PA and base VA. This
@@ -137,7 +152,7 @@ int mmap_add_dynamic_region(unsigned long long base_pa, uintptr_t base_va,
 				size_t size, mmap_attr_t attr);
 int mmap_add_dynamic_region_ctx(xlat_ctx_handle_t ctx,
 				unsigned long long base_pa, uintptr_t base_va,
-				size_t size, mmap_attr_t attr);
+				size_t size, mmap_attr_t attr, size_t granularity);
 
 /*
  * Remove a region with the specified base VA and size. Only dynamic regions can

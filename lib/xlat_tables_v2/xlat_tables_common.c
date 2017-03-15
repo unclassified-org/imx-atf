@@ -78,7 +78,7 @@ static xlat_ctx_handle_t tf_xlat_ctx_handle = &tf_xlat_ctx;
 void mmap_add_region(unsigned long long base_pa, uintptr_t base_va,
 			size_t size, mmap_attr_t attr)
 {
-	mmap_add_region_ctx(tf_xlat_ctx_handle, base_pa, base_va, size, attr);
+	mmap_add_region_ctx(tf_xlat_ctx_handle, base_pa, base_va, size, attr, size);
 }
 
 void mmap_add(const mmap_region_t *mm)
@@ -92,7 +92,7 @@ int mmap_add_dynamic_region(unsigned long long base_pa,
 			    uintptr_t base_va, size_t size, mmap_attr_t attr)
 {
 	return mmap_add_dynamic_region_ctx(tf_xlat_ctx_handle,
-					base_pa, base_va, size, attr);
+					   base_pa, base_va, size, attr, size);
 }
 
 int mmap_remove_dynamic_region(uintptr_t base_va, size_t size)

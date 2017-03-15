@@ -397,7 +397,8 @@ static action_t xlat_tables_map_region_action(const mmap_region_t *mm,
 				 * descriptors. If not, create a table instead.
 				 */
 				if ((dest_pa & XLAT_BLOCK_MASK(level)) ||
-				    (level < MIN_LVL_BLOCK_DESC))
+				    (level < MIN_LVL_BLOCK_DESC) ||
+				    (mm->granularity < XLAT_BLOCK_SIZE(level)))
 					return ACTION_CREATE_NEW_TABLE;
 				else
 					return ACTION_WRITE_BLOCK_ENTRY;
@@ -570,9 +571,13 @@ void print_mmap(mmap_region_t *const mmap)
 	mmap_region_t *mm = mmap;
 
 	while (mm->size) {
-		tf_printf(" VA:%p  PA:0x%llx  size:0x%zx  attr:0x%x\n",
+		tf_printf(" VA:%p  PA:0x%llx  size:0x%zx  attr:0x%x",
 				(void *)mm->base_va, mm->base_pa,
 				mm->size, mm->attr);
+		if (mm->size != mm->granularity)
+			tf_printf(" granularity:0x%zx\n", mm->granularity);
+		else
+			tf_printf("\n");
 		++mm;
 	};
 	tf_printf("\n");
@@ -590,14 +595,14 @@ void print_mmap(mmap_region_t *const mmap)
  */
 static int mmap_add_region_check(xlat_ctx_t *ctx, unsigned long long base_pa,
 				 uintptr_t base_va, size_t size,
-				 mmap_attr_t attr)
+				 mmap_attr_t attr, size_t granularity)
 {
 	mmap_region_t *mm = ctx->mmap;
 	unsigned long long end_pa = base_pa + size - 1;
 	uintptr_t end_va = base_va + size - 1;
 
 	if (!IS_PAGE_ALIGNED(base_pa) || !IS_PAGE_ALIGNED(base_va) ||
-			!IS_PAGE_ALIGNED(size))
+		!IS_PAGE_ALIGNED(size) || !IS_PAGE_ALIGNED(granularity))
 		return -EINVAL;
 
 	/* Check for overflows */
@@ -670,7 +675,7 @@ static int mmap_add_region_check(xlat_ctx_t *ctx, unsigned long long base_pa,
 
 void mmap_add_region_ctx(xlat_ctx_handle_t ctx_handle,
 			 unsigned long long base_pa, uintptr_t base_va,
-			 size_t size, mmap_attr_t attr)
+			 size_t size, mmap_attr_t attr, size_t granularity)
 {
 	xlat_ctx_t *ctx = GET_CTX_FROM_HANDLE(ctx_handle);
 	mmap_region_t *mm_cursor = ctx->mmap;
@@ -686,7 +691,8 @@ void mmap_add_region_ctx(xlat_ctx_handle_t ctx_handle,
 	/* Static regions must be added before initializing the xlat tables. */
 	assert(!ctx->initialized);
 
-	ret = mmap_add_region_check(ctx, base_pa, base_va, size, attr);
+	ret = mmap_add_region_check(ctx, base_pa, base_va, size, attr,
+				    granularity);
 	if (ret != 0) {
 		ERROR("mmap_add_region_check() failed. error %d\n", ret);
 		assert(0);
@@ -740,6 +746,7 @@ void mmap_add_region_ctx(xlat_ctx_handle_t ctx_handle,
 	mm_cursor->base_va = base_va;
 	mm_cursor->size = size;
 	mm_cursor->attr = attr;
+	mm_cursor->granularity = granularity;
 
 	if (end_pa > ctx->max_pa)
 		ctx->max_pa = end_pa;
@@ -751,7 +758,8 @@ void mmap_add_ctx(xlat_ctx_handle_t ctx_handle, const mmap_region_t *mm)
 {
 	while (mm->size) {
 		mmap_add_region_ctx(ctx_handle,
-			    mm->base_va, mm->base_pa, mm->size, mm->attr);
+				    mm->base_va, mm->base_pa, mm->size, mm->attr,
+				    mm->granularity);
 		mm++;
 	}
 }
@@ -772,7 +780,8 @@ int mmap_add_dynamic_region_ctx(xlat_ctx_handle_t ctx_handle, mmap_region_t *mm)
 	if (!mm->size)
 		return 0;
 
-	ret = mmap_add_region_check(ctx, mm->base_pa, mm->base_va, mm->size, mm->attr | MT_DYNAMIC);
+	ret = mmap_add_region_check(ctx, mm->base_pa, mm->base_va, mm->size,
+				mm->attr | MT_DYNAMIC, mm->granularity);
 	if (ret != 0)
 		return ret;
 
@@ -801,6 +810,7 @@ int mmap_add_dynamic_region_ctx(xlat_ctx_handle_t ctx_handle, mmap_region_t *mm)
 	mm_cursor->base_va = mm->base_va;
 	mm_cursor->size = mm->size;
 	mm_cursor->attr = mm->attr | MT_DYNAMIC;
+	mm_cursor->granularity = mm->granularity;
 
 	/*
 	 * Update the translation tables if the xlat tables are initialized. If
