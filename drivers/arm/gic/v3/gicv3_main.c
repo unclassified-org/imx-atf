@@ -10,11 +10,13 @@
 #include <debug.h>
 #include <gic_common.h>
 #include <gicv3.h>
+#include <spinlock.h>
 #include "../common/gic_common_private.h"
 #include "gicv3_private.h"
 
 static const gicv3_driver_data_t *driver_data;
 static unsigned int gicv2_compat;
+static spinlock_t gic_lock;
 
 /*
  * Redistributor power operations are weakly bound so that they can be
@@ -405,4 +407,230 @@ unsigned int gicv3_get_interrupt_type(unsigned int id,
 
 	/* Else it is a Group 0 Secure interrupt */
 	return INTR_GROUP0;
+}
+
+/*******************************************************************************
+ * This function enables the interrupt identified by id. The proc_num
+ * is used if the interrupt is SGI or PPI, and programs the corresponding
+ * redistributor interface.
+ ******************************************************************************/
+void gicv3_enable_interrupt(unsigned int id, unsigned int proc_num)
+{
+	assert(driver_data);
+	assert(driver_data->gicd_base);
+	assert(proc_num < driver_data->rdistif_num);
+	assert(driver_data->rdistif_base_addrs);
+
+	if (id < MIN_SPI_ID) {
+		/* For SGIs and PPIs */
+		gicr_set_isenabler0(driver_data->rdistif_base_addrs[proc_num],
+				id);
+	} else {
+		gicd_set_isenabler(driver_data->gicd_base, id);
+	}
+
+}
+
+/*******************************************************************************
+ * This function disables the interrupt identified by id. The proc_num
+ * is used if the interrupt is SGI or PPI, and programs the corresponding
+ * redistributor interface.
+ ******************************************************************************/
+void gicv3_disable_interrupt(unsigned int id, unsigned int proc_num)
+{
+	assert(driver_data);
+	assert(driver_data->gicd_base);
+	assert(proc_num < driver_data->rdistif_num);
+	assert(driver_data->rdistif_base_addrs);
+
+	if (id < MIN_SPI_ID) {
+		/* For SGIs and PPIs */
+		gicr_set_icenabler0(driver_data->rdistif_base_addrs[proc_num],
+				id);
+	} else {
+		gicd_set_icenabler(driver_data->gicd_base, id);
+	}
+}
+
+/*******************************************************************************
+ * This function checks if the interrupt identified by id is active (whether the
+ * state is either active, or active and pending). The proc_num is used if the
+ * interrupt is SGI or PPI and programs the corresponding redistributor
+ * interface.
+ ******************************************************************************/
+unsigned int gicv3_get_interrupt_active(unsigned int id, unsigned int proc_num)
+{
+	unsigned int value;
+
+	assert(driver_data);
+	assert(driver_data->gicd_base);
+	assert(proc_num < driver_data->rdistif_num);
+	assert(driver_data->rdistif_base_addrs);
+
+	if (id < MIN_SPI_ID) {
+		/* For SGIs and PPIs */
+		value = gicr_get_isactiver0(
+				driver_data->rdistif_base_addrs[proc_num], id);
+	} else {
+		value = gicd_get_isactiver(driver_data->gicd_base, id);
+	}
+
+	return value;
+}
+
+/*******************************************************************************
+ * This function clears the pending status of an interrupt identified by id.
+ * The proc_num is used if the interrupt is SGI or PPI and programs the
+ * corresponding redistributor interface.
+ ******************************************************************************/
+void gicv3_clear_interrupt_pending(unsigned int id, unsigned int proc_num)
+{
+	assert(driver_data);
+	assert(driver_data->gicd_base);
+	assert(proc_num < driver_data->rdistif_num);
+	assert(driver_data->rdistif_base_addrs);
+
+	if (id < MIN_SPI_ID) {
+		/* For SGIs and PPIs */
+		gicr_set_icpendr0(driver_data->rdistif_base_addrs[proc_num],
+				id);
+	} else {
+		gicd_set_icpendr(driver_data->gicd_base, id);
+	}
+}
+
+/*******************************************************************************
+ * This function disables the interrupt identified by id. The proc_num is used
+ * if the interrupt is SGI or PPI, and programs the corresponding redistributor
+ * interface. The group can be any of INTR_GROUP*
+ ******************************************************************************/
+void gicv3_set_interrupt_group(unsigned int id, unsigned int proc_num,
+		unsigned int group)
+{
+	unsigned int igroup, grpmod;
+	uintptr_t gicr_base;
+
+	assert(driver_data);
+	assert(driver_data->gicd_base);
+	assert(proc_num < driver_data->rdistif_num);
+	assert(driver_data->rdistif_base_addrs);
+	/* TODO: Add assert for cache and address translation enabled */
+
+	switch (group) {
+	case INTR_GROUP1S:
+		igroup = 0;
+		grpmod = 1;
+		break;
+	case INTR_GROUP0:
+		igroup = 0;
+		grpmod = 0;
+		break;
+	case INTR_GROUP1NS:
+		igroup = 1;
+		grpmod = 0;
+		break;
+	default:
+		return;
+	}
+
+	if (id < MIN_SPI_ID) {
+		gicr_base = driver_data->rdistif_base_addrs[proc_num];
+		if (igroup)
+			gicr_set_igroupr0(gicr_base, id);
+		else
+			gicr_clr_igroupr0(gicr_base, id);
+
+		if (grpmod)
+			gicr_set_igrpmodr0(gicr_base, id);
+		else
+			gicr_clr_igrpmodr0(gicr_base, id);
+	} else {
+		/* Serialize read-modify-write to Distributor registers */
+		spin_lock(&gic_lock);
+		if (igroup)
+			gicd_set_igroupr(driver_data->gicd_base, id);
+		else
+			gicd_clr_igroupr(driver_data->gicd_base, id);
+
+		if (grpmod)
+			gicd_set_igrpmodr(driver_data->gicd_base, id);
+		else
+			gicd_clr_igrpmodr(driver_data->gicd_base, id);
+		spin_unlock(&gic_lock);
+	}
+}
+
+/*******************************************************************************
+ * This function sets the interrupt priority as supplied for the given interrupt
+ * id.
+ ******************************************************************************/
+void gicv3_set_interrupt_priority(unsigned int id, unsigned int proc_num,
+		unsigned int priority)
+{
+	uintptr_t gicr_base;
+
+	assert(driver_data);
+	assert(driver_data->gicd_base);
+	assert(proc_num < driver_data->rdistif_num);
+	assert(driver_data->rdistif_base_addrs);
+
+	if (id < MIN_SPI_ID) {
+		gicr_base = driver_data->rdistif_base_addrs[proc_num];
+		gicr_set_ipriorityr(gicr_base, id, priority);
+	} else {
+		gicd_set_ipriorityr(driver_data->gicd_base, id, priority);
+	}
+}
+
+/*******************************************************************************
+ * This function sets the interrupt routing for the given SPI interrupt id.
+ * The interrupt routing is specified in routing mode and mpidr.
+ *
+ * The routing mode can be either of:
+ *  - INTR_ROUTING_MODE_1_OF_N
+ *  - INTR_ROUTING_MODE_PE
+ *
+ * The mpidr is the affinity of the PE to which the interrupt will be routed,
+ * and is ignored for routing mode INTR_ROUTING_MODE_1_OF_N.
+ ******************************************************************************/
+void gicv3_set_interrupt_routing(unsigned int id, unsigned int routing_mode,
+		unsigned long long mpidr)
+{
+	unsigned long long aff;
+
+	assert(driver_data);
+	assert(driver_data->gicd_base);
+	assert(id >= MIN_SPI_ID);
+	assert(routing_mode == INTR_ROUTING_MODE_1_OF_N ||
+			routing_mode == INTR_ROUTING_MODE_PE);
+
+	aff = gicd_irouter_val_from_mpidr(mpidr, routing_mode);
+	gicd_write_irouter(driver_data->gicd_base, id, aff);
+}
+
+/*******************************************************************************
+ * This function sets the processor interrupt priority mask. Only interrupts
+ * with higher priority (lower value) than priority will be signaled to the
+ * processor.
+ ******************************************************************************/
+void gicv3_set_interrupt_priority_mask(unsigned int priority)
+{
+	write_icc_pmr_el1(priority);
+}
+
+/*******************************************************************************
+ * This function gets the processor interrupt priority mask.
+ ******************************************************************************/
+unsigned int gicv3_get_interrupt_priority_mask(void)
+{
+	return read_icc_pmr_el1();
+}
+
+/*******************************************************************************
+ * This function gets the priority of the interrupt the processor is currently
+ * servicing.
+ ******************************************************************************/
+unsigned int gicv3_get_running_priority(void)
+{
+	return read_icc_rpr_el1();
 }

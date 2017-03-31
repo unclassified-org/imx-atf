@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2017, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -82,9 +82,12 @@ void gicr_write_ipriorityr(uintptr_t base, unsigned int id, unsigned int val);
 unsigned int gicd_get_igrpmodr(uintptr_t base, unsigned int id);
 unsigned int gicr_get_igrpmodr0(uintptr_t base, unsigned int id);
 unsigned int gicr_get_igroupr0(uintptr_t base, unsigned int id);
+unsigned int gicr_get_isactiver0(uintptr_t base, unsigned int id);
 void gicd_set_igrpmodr(uintptr_t base, unsigned int id);
 void gicr_set_igrpmodr0(uintptr_t base, unsigned int id);
 void gicr_set_isenabler0(uintptr_t base, unsigned int id);
+void gicr_set_icenabler0(uintptr_t base, unsigned int id);
+void gicr_set_icpendr0(uintptr_t base, unsigned int id);
 void gicr_set_igroupr0(uintptr_t base, unsigned int id);
 void gicd_clr_igrpmodr(uintptr_t base, unsigned int id);
 void gicr_clr_igrpmodr0(uintptr_t base, unsigned int id);
@@ -192,6 +195,16 @@ static inline void gicr_write_icenabler0(uintptr_t base, unsigned int val)
 static inline unsigned int gicr_read_isenabler0(uintptr_t base)
 {
 	return mmio_read_32(base + GICR_ISENABLER0);
+}
+
+static inline unsigned int gicr_read_isactiver0(uintptr_t base)
+{
+	return mmio_read_32(base + GICR_ISACTIVER0);
+}
+
+static inline void gicr_write_icpendr0(uintptr_t base, unsigned int val)
+{
+	mmio_write_32(base + GICR_ICPENDR0, val);
 }
 
 static inline void gicr_write_isenabler0(uintptr_t base, unsigned int val)

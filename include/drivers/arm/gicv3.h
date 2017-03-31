@@ -1,11 +1,15 @@
 /*
- * Copyright (c) 2015-2016, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2017, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #ifndef __GICV3_H__
 #define __GICV3_H__
+
+/* FIXME: duplicate definitions  */
+#define INTR_ROUTING_MODE_1_OF_N	1
+#define INTR_ROUTING_MODE_PE		0
 
 /*******************************************************************************
  * GICv3 miscellaneous definitions
@@ -80,6 +84,8 @@
 #define GICR_IGROUPR0		(GICR_SGIBASE_OFFSET + 0x80)
 #define GICR_ISENABLER0		(GICR_SGIBASE_OFFSET + 0x100)
 #define GICR_ICENABLER0		(GICR_SGIBASE_OFFSET + 0x180)
+#define GICR_ICPENDR0		(GICR_SGIBASE_OFFSET + 0x280)
+#define GICR_ISACTIVER0		(GICR_SGIBASE_OFFSET + 0x300)
 #define GICR_IPRIORITYR		(GICR_SGIBASE_OFFSET + 0x400)
 #define GICR_ICFGR0		(GICR_SGIBASE_OFFSET + 0xc00)
 #define GICR_ICFGR1		(GICR_SGIBASE_OFFSET + 0xc04)
@@ -243,7 +249,19 @@ unsigned int gicv3_get_pending_interrupt_type(void);
 unsigned int gicv3_get_pending_interrupt_id(void);
 unsigned int gicv3_get_interrupt_type(unsigned int id,
 					  unsigned int proc_num);
+void gicv3_enable_interrupt(unsigned int id, unsigned int proc_num);
+void gicv3_disable_interrupt(unsigned int id, unsigned int proc_num);
+unsigned int gicv3_get_interrupt_active(unsigned int id, unsigned int proc_num);
+void gicv3_clear_interrupt_pending(unsigned int id, unsigned int proc_num);
+void gicv3_set_interrupt_group(unsigned int id, unsigned int proc_num,
+		unsigned int group);
+void gicv3_set_interrupt_priority(unsigned int id, unsigned int proc_num,
+		unsigned int priority);
+void gicv3_set_interrupt_priority_mask(unsigned int priority);
+unsigned int gicv3_get_interrupt_priority_mask(void);
 
-
+void gicv3_set_interrupt_routing(unsigned int id, unsigned int routing_mode,
+		unsigned long long mpidr);
+unsigned int gicv3_get_running_priority(void);
 #endif /* __ASSEMBLY__ */
 #endif /* __GICV3_H__ */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2017, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -170,6 +170,41 @@ void gicr_set_isenabler0(uintptr_t base, unsigned int id)
 
 	gicr_write_isenabler0(base, (1 << bit_num));
 }
+
+/*
+ * Accessor to set the bit corresponding to interrupt ID
+ * in GIC Re-distributor ICENABLER0.
+ */
+void gicr_set_icenabler0(uintptr_t base, unsigned int id)
+{
+	unsigned bit_num = id & ((1 << ICENABLER_SHIFT) - 1);
+
+	gicr_write_icenabler0(base, (1 << bit_num));
+}
+
+/*
+ * Accessor to set the bit corresponding to interrupt ID
+ * in GIC Re-distributor ISACTIVER0.
+ */
+unsigned int gicr_get_isactiver0(uintptr_t base, unsigned int id)
+{
+	unsigned bit_num = id & ((1 << ISACTIVER_SHIFT) - 1);
+	unsigned int reg_val = gicr_read_isactiver0(base);
+
+	return (reg_val >> bit_num) & 0x1;
+}
+
+/*
+ * Accessor to clear the bit corresponding to interrupt ID
+ * in GIC Re-distributor ICPENDRR0.
+ */
+void gicr_set_icpendr0(uintptr_t base, unsigned int id)
+{
+	unsigned bit_num = id & ((1 << ICPENDR_SHIFT) - 1);
+
+	gicr_write_icpendr0(base, (1 << bit_num));
+}
+
 
 /*
  * Accessor to set the byte corresponding to interrupt ID

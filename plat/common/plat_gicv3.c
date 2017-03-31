@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2017, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -11,6 +11,7 @@
 #include <gicv3.h>
 #include <interrupt_mgmt.h>
 #include <platform.h>
+#include <platform_ic_extras.h>
 
 #ifdef IMAGE_BL31
 
@@ -155,6 +156,58 @@ uint32_t plat_interrupt_type_to_line(uint32_t type,
 		return __builtin_ctz(SCR_FIQ_BIT);
 	}
 }
+
+void plat_ic_enable_interrupt(unsigned int id)
+{
+	gicv3_enable_interrupt(id, plat_my_core_pos());
+}
+
+void plat_ic_disable_interrupt(unsigned int id)
+{
+	gicv3_disable_interrupt(id, plat_my_core_pos());
+}
+
+unsigned int plat_ic_get_interrupt_active(unsigned int id)
+{
+	return gicv3_get_interrupt_active(id, plat_my_core_pos());
+}
+
+void plat_ic_clear_interrupt_pending(unsigned int id)
+{
+	gicv3_clear_interrupt_pending(id, plat_my_core_pos());
+}
+
+void plat_ic_set_interrupt_group(unsigned int id, unsigned  int group)
+{
+	gicv3_set_interrupt_group(id, plat_my_core_pos(), group);
+}
+
+void plat_ic_set_interrupt_priority(unsigned int id, unsigned int priority)
+{
+	gicv3_set_interrupt_priority(id, plat_my_core_pos(), priority);
+}
+
+void plat_ic_set_interrupt_routing(unsigned int id, unsigned int routing_mode,
+						unsigned long long mpidr)
+{
+	gicv3_set_interrupt_routing(id, routing_mode, mpidr);
+}
+
+void plat_ic_set_interrupt_priority_mask(unsigned int priority)
+{
+	gicv3_set_interrupt_priority_mask(priority);
+}
+
+unsigned int plat_ic_get_interrupt_priority_mask(void)
+{
+	return gicv3_get_interrupt_priority_mask();
+}
+
+unsigned int plat_ic_get_running_priority(void)
+{
+	return gicv3_get_running_priority();
+}
+
 #endif
 #ifdef IMAGE_BL32
 
