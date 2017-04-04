@@ -114,6 +114,8 @@ static uint64_t xlat_desc(mmap_attr_t attr, unsigned long long addr_pa,
 	 */
 	desc |= (attr & MT_NS) ? LOWER_ATTRS(NS) : 0;
 	desc |= (attr & MT_RW) ? LOWER_ATTRS(AP_RW) : LOWER_ATTRS(AP_RO);
+	/* HACK: Also set EL0 data access permissions, AP[1] */
+	desc |= LOWER_ATTRS(1 << 4);
 	desc |= LOWER_ATTRS(ACCESS_FLAG);
 
 	/*
