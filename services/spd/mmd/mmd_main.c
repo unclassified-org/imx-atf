@@ -65,6 +65,7 @@ static uint64_t mmd_synchronous_sp_entry(mm_context_t *mm_ctx)
 	assert(cm_get_context(SECURE) == &mm_ctx->cpu_ctx);
 
 	/* Apply the Secure EL1 system register context and switch to it */
+	mm_shim_prepare_context();
 	cm_el1_sysregs_context_restore(SECURE);
 	cm_set_next_eret_context(SECURE);
 
@@ -197,6 +198,13 @@ int32_t mmd_setup(void)
 		return 1;
 
 	mmd_init_mm_ep_state(mm_ep_info, mm_ep_info->pc, &mm_ctx);
+
+	/*
+	 * Setup translation tables and calculate values of system registers.
+	 * The calculated values are stored in the S-EL1 context before
+	 * jumping to the code in S-EL0.
+	 */
+	mm_shim_setup();
 
 	/*
 	 * All MMD initialization done. Now register our init function with

@@ -30,7 +30,7 @@
 #elif defined(IMAGE_BL2U)
 # define PLATFORM_STACK_SIZE 0x200
 #elif defined(IMAGE_BL31)
-# define PLATFORM_STACK_SIZE 0x400
+# define PLATFORM_STACK_SIZE 0x440
 #elif defined(IMAGE_BL32)
 # define PLATFORM_STACK_SIZE 0x440
 #endif
