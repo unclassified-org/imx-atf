@@ -111,6 +111,21 @@ SECTIONS
            "cpu_ops not defined for this platform.")
 
     /*
+     * Exception vectors of the mm shim layer. They must be aligned to a 2K
+     * address, but we need to place them in a separate page so that we can set
+     * individual permissions to them.
+     *
+     * There's no need to include this into the RO section of BL31 because it
+     * doesn't need to be modified or read by BL31.
+     */
+    mm_shim_exception_vectors : ALIGN(4096) {
+        __MM_SHIM_EXCEPTIONS_START__ = .;
+        *(.mm_shim_vectors)
+        . = NEXT(4096);
+        __MM_SHIM_EXCEPTIONS_END__ = .;
+    } >RAM
+
+    /*
      * Define a linker symbol to mark start of the RW memory area for this
      * image.
      */
