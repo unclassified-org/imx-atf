@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2014-2017, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -16,6 +16,8 @@
 #include <stdint.h>
 #include <uuid.h>
 
+#include <mm_svc.h>
+
 /* Standard Service UUID */
 DEFINE_SVC_UUID(arm_svc_uid,
 		0x108d905b, 0xf863, 0x47e8, 0xae, 0x2d,
@@ -25,15 +27,20 @@ DEFINE_SVC_UUID(arm_svc_uid,
 static int32_t std_svc_setup(void)
 {
 	uintptr_t svc_arg;
+	int ret;
 
 	svc_arg = get_arm_std_svc_args(PSCI_FID_MASK);
 	assert(svc_arg);
 
 	/*
-	 * PSCI is the only specification implemented as a Standard Service.
+	 * PSCI is one of the specifications implemented as a Standard Service.
 	 * The `psci_setup()` also does EL3 architectural setup.
 	 */
-	return psci_setup((const psci_lib_args_t *)svc_arg);
+	ret = psci_setup((const psci_lib_args_t *)svc_arg);
+	if (ret != 0)
+		return ret;
+
+	return mmd_setup();
 }
 
 /*
@@ -78,6 +85,16 @@ uintptr_t std_svc_smc_handler(uint32_t smc_fid,
 #endif
 
 		SMC_RET1(handle, ret);
+	}
+
+
+	/*
+	 * Dispatch MM calls to MMD SMC handler and return its return
+	 * value
+	 */
+	if (is_mm_fid(smc_fid)) {
+		return mmd_smc_handler(smc_fid, x1, x2, x3, x4, cookie,
+				       handle, flags);
 	}
 
 	switch (smc_fid) {
