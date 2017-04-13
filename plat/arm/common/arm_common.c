@@ -12,6 +12,10 @@
 #include <plat_arm.h>
 #include <platform_def.h>
 
+#if defined(IMAGE_BL31)
+#include "../../../services/spd/mmd/mm_shim.h"
+#endif
+
 extern const mmap_region_t plat_arm_mmap[];
 
 /* Weak definitions may be overridden in specific ARM standard platform */
@@ -77,6 +81,12 @@ void arm_setup_page_tables(uintptr_t total_base,
 	mmap_add_region(coh_start, coh_start,
 			coh_limit - coh_start,
 			MT_DEVICE | MT_RW | MT_SECURE);
+#endif
+
+#if defined(IMAGE_BL31)
+	mmap_add_region(MM_SHIM_XLAT_TABLES_BASE, MM_SHIM_XLAT_TABLES_BASE,
+			MM_SHIM_XLAT_TABLES_SIZE,
+			MT_MEMORY | MT_RW | MT_SECURE);
 #endif
 
 	/* Now (re-)map the platform-specific memory regions */
