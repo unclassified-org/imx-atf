@@ -244,6 +244,16 @@ SECTIONS
      * image.
      */
     __RW_END__ = .;
+
+    mm_shim_xlat_table (NOLOAD) : ALIGN(4096){
+        __MM_SHIM_XLAT_TABLES_START__ = .;
+        *(mm_shim_xlat_table)
+        *(mm_shim_xlat_table_base)
+        /* Make sure that the rest of the page is empty. */
+        . = NEXT(4096);
+        __MM_SHIM_XLAT_TABLES_END__ = .;
+    } >RAM
+
     __BL31_END__ = .;
 
     __BSS_SIZE__ = SIZEOF(.bss);
