@@ -60,6 +60,10 @@
 # define MAX_XLAT_TABLES		5
 #endif
 
+#if defined(IMAGE_BL31)
+#define MM_SHIM_MAX_XLAT_TABLES	4
+#endif
+
 /*
  * PLAT_ARM_MAX_BL1_RW_SIZE is calculated using the current BL1 RW debug size
  * plus a little space for growth.

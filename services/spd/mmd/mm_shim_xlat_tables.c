@@ -28,28 +28,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __MM_SHIM_H__
-#define __MM_SHIM_H__
+#include <platform_def.h>
+#include <xlat_tables_v2.h>
 
-/* Assembly source */
-extern uintptr_t mm_shim_exceptions;
+static uint64_t mm_shim_xlat_tables[MM_SHIM_MAX_XLAT_TABLES][XLAT_TABLE_ENTRIES]
+			__aligned(XLAT_TABLE_SIZE) __section("mm_shim_xlat_table");
 
-/* Linker symbols */
-extern uintptr_t __MM_SHIM_EXCEPTIONS_START__;
-extern uintptr_t __MM_SHIM_EXCEPTIONS_END__;
-
-extern uintptr_t __MM_SHIM_XLAT_TABLES_START__;
-extern uintptr_t __MM_SHIM_XLAT_TABLES_END__;
-
-/* Definitions */
-#define MM_SHIM_EXCEPTIONS_BASE_PTR		(uintptr_t)(&mm_shim_exceptions)
-
-#define MM_SHIM_EXCEPTIONS_BASE		(uintptr_t)(&__MM_SHIM_EXCEPTIONS_START__)
-#define MM_SHIM_EXCEPTIONS_END		(uintptr_t)(&__MM_SHIM_EXCEPTIONS_END__)
-#define MM_SHIM_EXCEPTIONS_SIZE		(MM_SHIM_EXCEPTIONS_END - MM_SHIM_EXCEPTIONS_BASE)
-
-#define MM_SHIM_XLAT_TABLES_BASE	(uintptr_t)(&__MM_SHIM_XLAT_TABLES_START__)
-#define MM_SHIM_XLAT_TABLES_END		(uintptr_t)(&__MM_SHIM_XLAT_TABLES_END__)
-#define MM_SHIM_XLAT_TABLES_SIZE	(MM_SHIM_XLAT_TABLES_END - MM_SHIM_XLAT_TABLES_BASE)
-
-#endif /* __MM_SHIM_H__ */
+static uint64_t mm_shim_base_xlat_table[NUM_BASE_LEVEL_ENTRIES]
+			__aligned(NUM_BASE_LEVEL_ENTRIES * sizeof(uint64_t))
+			__section("mm_shim_xlat_table_base");
