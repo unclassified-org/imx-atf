@@ -38,6 +38,7 @@
 #include <smcc.h>
 #include <smcc_helpers.h>
 #include <mm_svc.h>
+#include <xlat_tables_v2.h>
 #include "mmd_private.h"
 
 /*******************************************************************************
@@ -205,6 +206,51 @@ int32_t mmd_setup(void)
 	return 0;
 }
 
+/*
+ * Attributes are encoded using in a different format in the
+ * MM_MEMORY_ATTRIBUTES_SET SMC than in TF, where we use the mmap_attr_t
+ * enum type.
+ * This function converts an attributes value from the SMC format to the
+ * mmap_attr_t format.
+ */
+static int smc_attr_to_mmap_attr(int attributes)
+{
+	/* Base attributes. Can't change these through the SMC */
+	int tf_attr = MT_MEMORY | MT_SECURE;
+
+	/*
+	 * TODO: Properly define bit shifts and masks instead of using magic
+	 * values
+	 */
+	if ((attributes & 3) == 1)
+		tf_attr |= MT_RW;
+	if (((attributes >> 2) & 1) == 1)
+		tf_attr |= MT_EXECUTE_NEVER;
+
+	return tf_attr;
+}
+
+static int mm_memory_attributes_smc_handler(u_register_t page_address,
+					u_register_t pages_count,
+					u_register_t smc_attributes)
+{
+	VERBOSE("Received MM_MEMORY_ATTRIBUTES_SET SMC\n");
+
+	uintptr_t base_va = (uintptr_t) page_address;
+	size_t size = (size_t) (pages_count * PAGE_SIZE);
+	int attributes = (int) smc_attributes;
+	VERBOSE("  Start address  : 0x%lx\n", base_va);
+	VERBOSE("  Number of pages: %i (%zi bytes)\n",
+		(int) pages_count, size);
+	VERBOSE("  Attributes     : 0x%x\n", attributes);
+	attributes = smc_attr_to_mmap_attr(attributes);
+	VERBOSE("  (Equivalent TF attributes: 0x%x)\n", attributes);
+
+	return change_mem_attributes(mm_shim_xlat_ctx_handle,
+				base_va, size, attributes);
+}
+
+
 uint64_t mmd_smc_handler(uint32_t smc_fid,
 			 uint64_t x1,
 			 uint64_t x2,
@@ -224,6 +270,10 @@ uint64_t mmd_smc_handler(uint32_t smc_fid,
 		 * payload. Jump back to the original C runtime context.
 		 */
 		mmd_synchronous_sp_exit(&mm_ctx, x1);
+
+	case MM_MEMORY_ATTRIBUTES_SET:
+		SMC_RET1(handle,
+			mm_memory_attributes_smc_handler(x1, x2, x3));
 
 	default:
 		/* TODO: Implement me */
