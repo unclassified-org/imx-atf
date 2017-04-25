@@ -38,7 +38,7 @@ static uint64_t tf_base_xlat_table[NUM_BASE_LEVEL_ENTRIES]
 static int xlat_tables_mapped_regions[MAX_XLAT_TABLES];
 #endif /* PLAT_XLAT_TABLES_DYNAMIC */
 
-xlat_ctx_t tf_xlat_ctx = {
+static xlat_ctx_t tf_xlat_ctx = {
 
 	/* exception_level is set at runtime */
 
@@ -67,24 +67,23 @@ xlat_ctx_t tf_xlat_ctx = {
 	.initialized = 0
 };
 
+/* Handle on the TF translation context */
+static xlat_ctx_handle_t tf_xlat_ctx_handle = &tf_xlat_ctx;
+
+
+/******************************************************************************
+ * Wrappers over the xlat table library APIs that act on the current BL image
+ * translation context defined above.
+ *****************************************************************************/
 void mmap_add_region(unsigned long long base_pa, uintptr_t base_va,
 			size_t size, mmap_attr_t attr)
 {
-	mmap_region_t mm = {
-		.base_va = base_va,
-		.base_pa = base_pa,
-		.size = size,
-		.attr = attr,
-	};
-	mmap_add_region_ctx(&tf_xlat_ctx, (mmap_region_t *)&mm);
+	mmap_add_region_ctx(tf_xlat_ctx_handle, base_pa, base_va, size, attr);
 }
 
 void mmap_add(const mmap_region_t *mm)
 {
-	while (mm->size) {
-		mmap_add_region_ctx(&tf_xlat_ctx, (mmap_region_t *)mm);
-		mm++;
-	}
+	mmap_add_ctx(tf_xlat_ctx_handle, mm);
 }
 
 #if PLAT_XLAT_TABLES_DYNAMIC
@@ -92,56 +91,40 @@ void mmap_add(const mmap_region_t *mm)
 int mmap_add_dynamic_region(unsigned long long base_pa,
 			    uintptr_t base_va, size_t size, mmap_attr_t attr)
 {
-	mmap_region_t mm = {
-		.base_va = base_va,
-		.base_pa = base_pa,
-		.size = size,
-		.attr = attr,
-	};
-	return mmap_add_dynamic_region_ctx(&tf_xlat_ctx, &mm);
+	return mmap_add_dynamic_region_ctx(tf_xlat_ctx_handle,
+					base_pa, base_va, size, attr);
 }
 
 int mmap_remove_dynamic_region(uintptr_t base_va, size_t size)
 {
-	return mmap_remove_dynamic_region_ctx(&tf_xlat_ctx, base_va, size);
+	return mmap_remove_dynamic_region_ctx(tf_xlat_ctx_handle,
+					base_va, size);
 }
 
 #endif /* PLAT_XLAT_TABLES_DYNAMIC */
 
 void init_xlat_tables(void)
 {
-	tf_xlat_ctx.exception_level = xlat_arch_current_el();
-	assert(!is_mmu_enabled(tf_xlat_ctx.exception_level));
-	assert(!tf_xlat_ctx.initialized);
-	print_mmap(tf_xlat_ctx.mmap);
-	tf_xlat_ctx.execute_never_mask =
-			xlat_arch_get_xn_desc(tf_xlat_ctx.exception_level);
-	init_xlation_table(&tf_xlat_ctx);
-	xlat_tables_print(&tf_xlat_ctx);
-
-	assert(tf_xlat_ctx.max_va <= PLAT_VIRT_ADDR_SPACE_SIZE - 1);
-	assert(tf_xlat_ctx.max_pa <= PLAT_PHY_ADDR_SPACE_SIZE - 1);
-
-	init_xlat_tables_arch(tf_xlat_ctx.max_pa);
+	init_xlat_tables_ctx(xlat_arch_current_el(), tf_xlat_ctx_handle);
 }
 
 #ifdef AARCH32
 
 void enable_mmu_secure(unsigned int flags)
 {
-	enable_mmu_arch(flags, tf_xlat_ctx.base_table);
+	enable_mmu_arch(flags, tf_base_xlat_table);
 }
 
 #else
 
 void enable_mmu_el1(unsigned int flags)
 {
-	enable_mmu_arch(flags, tf_xlat_ctx.base_table);
+	enable_mmu_arch(flags, tf_base_xlat_table);
 }
 
 void enable_mmu_el3(unsigned int flags)
 {
-	enable_mmu_arch(flags, tf_xlat_ctx.base_table);
+	enable_mmu_arch(flags, tf_base_xlat_table);
 }
 
 #endif /* AARCH32 */

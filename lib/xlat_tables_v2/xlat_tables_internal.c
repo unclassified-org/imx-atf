@@ -667,23 +667,25 @@ static int mmap_add_region_check(xlat_ctx_t *ctx, unsigned long long base_pa,
 	return 0;
 }
 
-void mmap_add_region_ctx(xlat_ctx_t *ctx, mmap_region_t *mm)
+void mmap_add_region_ctx(xlat_ctx_handle_t ctx_handle,
+			 unsigned long long base_pa, uintptr_t base_va,
+			 size_t size, mmap_attr_t attr)
 {
+	xlat_ctx_t *ctx = GET_CTX_FROM_HANDLE(ctx_handle);
 	mmap_region_t *mm_cursor = ctx->mmap;
 	mmap_region_t *mm_last = mm_cursor + ctx->mmap_num;
-	unsigned long long end_pa = mm->base_pa + mm->size - 1;
-	uintptr_t end_va = mm->base_va + mm->size - 1;
+	unsigned long long end_pa = base_pa + size - 1;
+	uintptr_t end_va = base_va + size - 1;
 	int ret;
 
 	/* Ignore empty regions */
-	if (!mm->size)
+	if (!size)
 		return;
 
 	/* Static regions must be added before initializing the xlat tables. */
 	assert(!ctx->initialized);
 
-	ret = mmap_add_region_check(ctx, mm->base_pa, mm->base_va, mm->size,
-				    mm->attr);
+	ret = mmap_add_region_check(ctx, base_pa, base_va, size, attr);
 	if (ret != 0) {
 		ERROR("mmap_add_region_check() failed. error %d\n", ret);
 		assert(0);
@@ -719,7 +721,7 @@ void mmap_add_region_ctx(xlat_ctx_t *ctx, mmap_region_t *mm)
 		++mm_cursor;
 
 	while ((mm_cursor->base_va + mm_cursor->size - 1 == end_va)
-	       && (mm_cursor->size < mm->size))
+	       && (mm_cursor->size < size))
 		++mm_cursor;
 
 	/* Make room for new region by moving other regions up by one place */
@@ -733,10 +735,10 @@ void mmap_add_region_ctx(xlat_ctx_t *ctx, mmap_region_t *mm)
 	 */
 	assert(mm_last->size == 0);
 
-	mm_cursor->base_pa = mm->base_pa;
-	mm_cursor->base_va = mm->base_va;
-	mm_cursor->size = mm->size;
-	mm_cursor->attr = mm->attr;
+	mm_cursor->base_pa = base_pa;
+	mm_cursor->base_va = base_va;
+	mm_cursor->size = size;
+	mm_cursor->attr = attr;
 
 	if (end_pa > ctx->max_pa)
 		ctx->max_pa = end_pa;
@@ -744,10 +746,21 @@ void mmap_add_region_ctx(xlat_ctx_t *ctx, mmap_region_t *mm)
 		ctx->max_va = end_va;
 }
 
+void mmap_add_ctx(xlat_ctx_handle_t ctx_handle, const mmap_region_t *mm)
+{
+	while (mm->size) {
+		mmap_add_region_ctx(ctx_handle,
+			    mm->base_va, mm->base_pa, mm->size, mm->attr);
+		mm++;
+	}
+}
+
+
 #if PLAT_XLAT_TABLES_DYNAMIC
 
-int mmap_add_dynamic_region_ctx(xlat_ctx_t *ctx, mmap_region_t *mm)
+int mmap_add_dynamic_region_ctx(xlat_ctx_handle_t ctx_handle, mmap_region_t *mm)
 {
+	xlat_ctx_t *ctx = (xlat_ctx_t *) ctx_handle;
 	mmap_region_t *mm_cursor = ctx->mmap;
 	mmap_region_t *mm_last = mm_cursor + ctx->mmap_num;
 	unsigned long long end_pa = mm->base_pa + mm->size - 1;
@@ -849,9 +862,10 @@ int mmap_add_dynamic_region_ctx(xlat_ctx_t *ctx, mmap_region_t *mm)
  *   EINVAL: Invalid values were used as arguments (region not found).
  *    EPERM: Tried to remove a static region.
  */
-int mmap_remove_dynamic_region_ctx(xlat_ctx_t *ctx, uintptr_t base_va,
-				   size_t size)
+int mmap_remove_dynamic_region_ctx(xlat_ctx_handle_t ctx_handle,
+				uintptr_t base_va, size_t size)
 {
+	xlat_ctx_t *ctx = (xlat_ctx_t *) ctx_handle;
 	mmap_region_t *mm = ctx->mmap;
 	mmap_region_t *mm_last = mm + ctx->mmap_num;
 	int update_max_va_needed = 0;
@@ -1048,9 +1062,27 @@ void xlat_tables_print(xlat_ctx_t *ctx)
 #endif /* LOG_LEVEL >= LOG_LEVEL_VERBOSE */
 }
 
-void init_xlation_table(xlat_ctx_t *ctx)
+
+void init_xlat_tables_ctx(int el, xlat_ctx_handle_t ctx_handle)
 {
-	mmap_region_t *mm = ctx->mmap;
+	xlat_ctx_t *ctx = GET_CTX_FROM_HANDLE(ctx_handle);
+	mmap_region_t *mm;
+
+	/*
+	 * TODO: Check that the MMU is disabled *at the EL targeted by the
+	 * context*!! It's not necessarily the current EL. E.g. for the shim
+	 * layer, we're running in EL3 but we're calling this function to
+	 * setup EL1.
+	 */
+	//assert(!is_mmu_enabled(el));
+
+	assert(!ctx->initialized);
+
+	ctx->exception_level = xlat_arch_current_el();
+	ctx->execute_never_mask = xlat_arch_get_xn_desc(el);
+
+	mm = ctx->mmap;
+	print_mmap(mm);
 
 	/* All tables must be zeroed before mapping any region. */
 
@@ -1080,4 +1112,10 @@ void init_xlation_table(xlat_ctx_t *ctx)
 	}
 
 	ctx->initialized = 1;
+	xlat_tables_print(ctx);
+
+	assert(ctx->max_va <= PLAT_VIRT_ADDR_SPACE_SIZE - 1);
+	assert(ctx->max_pa <= PLAT_PHY_ADDR_SPACE_SIZE - 1);
+
+	init_xlat_tables_arch(ctx->max_pa);
 }

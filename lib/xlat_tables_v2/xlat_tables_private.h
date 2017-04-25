@@ -35,7 +35,7 @@ CASSERT(IS_POWER_OF_TWO(PLAT_PHY_ADDR_SPACE_SIZE),
 	assert_valid_phy_addr_space_size);
 
 /* Struct that holds all information about the translation tables. */
-typedef struct {
+typedef struct xlat_ctx {
 
 	/*
 	 * Exception Level in which this context is used.
@@ -106,6 +106,15 @@ typedef struct {
 
 } xlat_ctx_t;
 
+/*
+ * Get the actual translation context associated to this handle.
+ * It's just a matter of casting the opaque handle type into the actual internal
+ * type, but using a macro to perform the conversion reinforces the abstraction
+ * and will make it easy to change the internal representation in the future
+ * if needed.
+ */
+#define GET_CTX_FROM_HANDLE(handle)	((struct xlat_ctx *) handle)
+
 #if PLAT_XLAT_TABLES_DYNAMIC
 /*
  * Shifts and masks to access fields of an mmap_attr_t
@@ -143,13 +152,6 @@ void xlat_arch_tlbi_va(int el, uintptr_t va);
  */
 void xlat_arch_tlbi_va_sync(void);
 
-/* Add a dynamic region to the specified context. */
-int mmap_add_dynamic_region_ctx(xlat_ctx_t *ctx, mmap_region_t *mm);
-
-/* Remove a dynamic region from the specified context. */
-int mmap_remove_dynamic_region_ctx(xlat_ctx_t *ctx, uintptr_t base_va,
-			size_t size);
-
 #endif /* PLAT_XLAT_TABLES_DYNAMIC */
 
 /* Print VA, PA, size and attributes of all regions in the mmap array. */
@@ -161,14 +163,6 @@ void print_mmap(mmap_region_t *const mmap);
  */
 void xlat_tables_print(xlat_ctx_t *ctx);
 
-/*
- * Initialize the translation tables by mapping all regions added to the
- * specified context.
- */
-void init_xlation_table(xlat_ctx_t *ctx);
-
-/* Add a static region to the specified context. */
-void mmap_add_region_ctx(xlat_ctx_t *ctx, mmap_region_t *mm);
 
 /*
  * Architecture-specific initialization code.
