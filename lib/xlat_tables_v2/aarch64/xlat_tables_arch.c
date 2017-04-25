@@ -10,7 +10,6 @@
 #include <bl_common.h>
 #include <cassert.h>
 #include <common_def.h>
-#include <platform_def.h>
 #include <sys/types.h>
 #include <utils.h>
 #include <xlat_tables_v2.h>
@@ -81,8 +80,6 @@ int is_mmu_enabled(void)
 #endif
 }
 
-#if PLAT_XLAT_TABLES_DYNAMIC
-
 void xlat_arch_tlbi_va(uintptr_t va)
 {
 	/*
@@ -141,8 +138,6 @@ void xlat_arch_tlbi_va_sync(void)
 	 */
 	isb();
 }
-
-#endif /* PLAT_XLAT_TABLES_DYNAMIC */
 
 int xlat_arch_current_el(void)
 {
