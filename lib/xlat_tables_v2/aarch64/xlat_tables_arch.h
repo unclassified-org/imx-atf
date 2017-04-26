@@ -81,4 +81,25 @@
 
 #endif
 
+static inline int is_xlat_level_valid(int level)
+{
+	return (level >= XLAT_TABLE_LEVEL_BASE) &&
+		(level <= XLAT_TABLE_LEVEL_MAX);
+}
+
+static inline uint64_t *get_next_table_addr(uint64_t table_desc)
+{
+	assert((table_desc & DESC_MASK) == TABLE_DESC);
+
+	/* See section D4.3 page 1775 in the ARMv8 ARM (rev k) */
+	uint64_t next_level_table_addr = table_desc & TABLE_ADDR_MASK;
+	return (uint64_t *) next_level_table_addr;
+}
+
+static inline int get_xlat_table_idx(uintptr_t virtual_addr, int level)
+{
+	assert(is_xlat_level_valid(level));
+	return (virtual_addr >> XLAT_ADDR_SHIFT(level)) & XLAT_TABLE_IDX_MASK;
+}
+
 #endif /* __XLAT_TABLES_ARCH_H__ */
