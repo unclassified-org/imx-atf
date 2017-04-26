@@ -7,6 +7,7 @@
 #include <arch.h>
 #include <arch_helpers.h>
 #include <assert.h>
+#include <bitops.h>
 #include <common_def.h>
 #include <debug.h>
 #include <errno.h>
@@ -1238,3 +1239,268 @@ void enable_mmu_el3(unsigned int flags)
 }
 
 #endif /* AARCH32 */
+
+////////////////////////////////////////////////////////////////////
+
+static inline uint64_t *get_next_table_addr(uint64_t table_desc)
+{
+	assert((table_desc & DESC_MASK) == TABLE_DESC);
+
+	/* See section D4.3 page 1775 in the ARMv8 ARM (rev k) */
+	uint64_t next_level_table_addr = table_desc & TABLE_ADDR_MASK;
+	return (uint64_t *) next_level_table_addr;
+}
+
+static inline int get_xlat_table_idx(uintptr_t virtual_addr, int level)
+{
+	return (virtual_addr >> XLAT_ADDR_SHIFT(level)) & XLAT_TABLE_IDX_MASK;
+}
+
+/*
+ * This function assumes that the given descriptor is a page or block
+ * descriptor, i.e. not a table descriptor.
+ */
+static void print_block_or_page_desc_attr(uint64_t desc)
+{
+	/* XXX: Define all bit shifts as architectural defs */
+	VERBOSE("  Upper attributes:\n");
+	VERBOSE("    XN    = %i\n", (int) ((desc >> 54) & 1));
+	VERBOSE("    PXN   = %i\n", (int) ((desc >> 53) & 1));
+	VERBOSE("    Cont  = %i\n", (int) ((desc >> 52) & 1));
+
+	VERBOSE("  Lower attributes:\n");
+	VERBOSE("    nG    = %i\n", (int) ((desc >> 11) & 1));
+	VERBOSE("    AF    = %i\n", (int) ((desc >> 10) & 1));
+	VERBOSE("    SH    = %i\n", (int) ((desc >>  8) & 3));
+	VERBOSE("    AP    = %i\n", (int) ((desc >>  6) & 3));
+	VERBOSE("    NS    = %i\n", (int) ((desc >>  5) & 1));
+	VERBOSE("    idx   = %i\n", (int) ((desc >>  2) & 7));
+}
+
+/*
+ * Note: The level argument is required to distinguish a page descriptor from a
+ * table descriptor, as this can't be deduced from the descriptor format itself.
+ */
+static void print_block_or_page_desc(uint64_t desc, int level)
+{
+#if ENABLE_ASSERTIONS
+	uint64_t desc_type = desc & DESC_MASK;
+#endif
+	assert(((level == XLAT_TABLE_LEVEL_MAX) && (desc_type == PAGE_DESC)) ||
+	       ((level != XLAT_TABLE_LEVEL_MAX) && (desc_type == BLOCK_DESC)));
+
+	VERBOSE("Mapped memory region starts from %p (size: 0x%lx)\n",
+		(void *) (desc & TABLE_ADDR_MASK),
+		XLAT_BLOCK_SIZE(level));
+
+	VERBOSE("(%s descriptor)\n",
+		(level == XLAT_TABLE_LEVEL_MAX) ? "page" : "block");
+
+	print_block_or_page_desc_attr(desc);
+}
+
+
+/*
+ * Update memory attributes in the given block or page descriptor.
+ */
+static void change_desc_attributes(uint64_t *desc,
+				   mmap_attr_t new_attr)
+{
+	/*
+	 * Change the AP[2] & XN bits in the descriptor according to the
+	 * requested high-level attributes.
+	 */
+	int read_write = (new_attr & (1 << MT_PERM_SHIFT)) == MT_RW;
+	int ap2_bit = read_write ? AP2_RW : AP2_RO;
+	set_bit(desc, ap2_bit, AP2_SHIFT);
+
+	int executable = (new_attr & (1 << MT_EXECUTE_SHIFT)) == MT_EXECUTE;
+	int xn_bit = executable ? 0 : 1;
+	set_bit(desc, xn_bit, XN_SHIFT);
+}
+
+
+/*
+ * Do a translation table walk to find the block or page descriptor that maps
+ * virtual_addr.
+ *
+ * On success, return the address of the descriptor (within the translation
+ * table). On error, return NULL.
+ *
+ * Error cases:
+ * - virtual_addr is not mapped.
+ *
+ * xlat_table_base: Base address for the initial lookup level.
+ * xlat_table_base_entries: Number of entries in the translation table for the
+ *   initial lookup level.
+ * XXX: out_level is ugly, find a better solution.
+ */
+static uint64_t *find_xlat_table_entry(uintptr_t virtual_addr,
+						void *xlat_table_base,
+						int xlat_table_base_entries,
+						uintptr_t virt_addr_space_size,
+						int *out_level)
+{
+	VERBOSE("\n%s(%p)\n", __func__, (void *) virtual_addr);
+	VERBOSE("Starting translation table walk from level %u\n",
+		GET_XLAT_TABLE_LEVEL_BASE(virt_addr_space_size));
+
+	uint64_t *table = xlat_table_base;
+	int entries = xlat_table_base_entries;
+
+	for (int level = GET_XLAT_TABLE_LEVEL_BASE(virt_addr_space_size);
+	     level     <= XLAT_TABLE_LEVEL_MAX;
+	     ++level) {
+
+		VERBOSE("Table address: %p\n", (void *) table);
+
+		int idx = get_xlat_table_idx(virtual_addr, level);
+		VERBOSE("Index into level-%i table: %i\n", level, idx);
+		if (idx >= entries) {
+			VERBOSE("Invalid address\n");
+			return NULL;
+		}
+
+		uint64_t desc = table[idx];
+		uint64_t desc_type = desc & DESC_MASK;
+		VERBOSE("Descriptor at level %i:\n", level);
+		VERBOSE("Value = 0x%llx\n", (unsigned long long) desc);
+
+		if (desc_type == INVALID_DESC) {
+			VERBOSE("Invalid entry (memory not mapped)\n");
+			return NULL;
+		}
+
+		if (desc_type == BLOCK_DESC) {
+			VERBOSE("Descriptor mapping a memory block (size: 0x%lx)\n",
+				XLAT_BLOCK_SIZE(level));
+			*out_level = level;
+			return &table[idx];
+		}
+
+		assert((desc_type == TABLE_DESC) || (desc_type == PAGE_DESC));
+		if (level == XLAT_TABLE_LEVEL_MAX) {
+			VERBOSE("Descriptor mapping a memory page (size: 0x%lx)\n",
+				XLAT_BLOCK_SIZE(XLAT_TABLE_LEVEL_MAX));
+			*out_level = level;
+			return &table[idx];
+		}
+
+		VERBOSE("Table descriptor, walking...\n");
+		table = get_next_table_addr(desc);
+		entries = XLAT_TABLE_ENTRIES;
+	}
+
+	return 0;
+}
+
+
+int change_mem_attributes(xlat_ctx_t *ctx,
+			uintptr_t base_va,
+			size_t size,
+			mmap_attr_t attributes)
+{
+	void *xlat_table_base = ctx->base_table;
+	int xlat_table_base_entries = ctx->base_table_entries;
+	uintptr_t virt_addr_space_size = ctx->va_max_address + 1;
+
+	/*
+	 * Sanity-check arguments
+	 */
+	assert(ctx->initialized);
+
+	if (!IS_PAGE_ALIGNED(base_va)) {
+		ERROR("%s: Address 0x%llx is not aligned on a page boundary\n",
+			__func__, (unsigned long long) base_va);
+		return -EINVAL;
+	}
+
+	if (size == 0) {
+		ERROR("%s: Size is 0\n", __func__);
+		return -EINVAL;
+	}
+
+	if ((size % PAGE_SIZE) != 0) {
+		ERROR("%s: Size 0x%zx is not a multiple of a page size\n",
+			__func__, size);
+		return -EINVAL;
+	}
+
+	if (((attributes & (1 << MT_EXECUTE_SHIFT)) == MT_EXECUTE) &&
+	    ((attributes & (1 << MT_PERM_SHIFT)) == MT_RW)) {
+		ERROR("%s: Read-write + execute is forbidden\n", __func__);
+		return -EINVAL;
+	}
+
+	int pages_count = size / PAGE_SIZE;
+
+	VERBOSE("Changing memory attributes of %i pages starting from address %p\n",
+		pages_count, (void *) base_va);
+
+	uintptr_t base_va_original = base_va;
+
+	/* Check that all the required pages are mapped at a page granularity */
+	for (int i = 0; i < pages_count; ++i) {
+		uint64_t *entry;
+		int level;
+
+		entry = find_xlat_table_entry(base_va,
+					      xlat_table_base,
+					      xlat_table_base_entries,
+					      virt_addr_space_size,
+					      &level);
+		if (entry == NULL) {
+			ERROR("Address %p is not mapped\n", (void *) base_va);
+			return -EINVAL;
+		}
+
+		if (((*entry & DESC_MASK) != PAGE_DESC) ||
+			(level != XLAT_TABLE_LEVEL_MAX)) {
+			ERROR("Address %p is not mapped at the right granularity\n",
+			      (void *) base_va);
+			ERROR("Granularity is 0x%lx, should be 0x%x\n",
+			      XLAT_BLOCK_SIZE(level), PAGE_SIZE);
+			return -EINVAL;
+		}
+
+		base_va += PAGE_SIZE;
+	}
+
+	VERBOSE("\n%s: OK, all pages are already mapped, lets change the attributes\n\n",
+		__func__);
+
+	/* Restore original value */
+	base_va = base_va_original;
+
+	/* All pages are in place, so let's change their attributes now */
+	for (int i = 0; i < pages_count; ++i) {
+		uint64_t *entry;
+		int level;
+
+		entry = find_xlat_table_entry(base_va,
+					      xlat_table_base,
+					      xlat_table_base_entries,
+					      virt_addr_space_size,
+					      &level);
+
+		/* We just checked that, but who knows?... */
+		assert((entry != NULL) && ((*entry & DESC_MASK) == PAGE_DESC) &&
+		       (level == XLAT_TABLE_LEVEL_MAX));
+
+		VERBOSE("Old attributes:\n");
+		print_block_or_page_desc(*entry, level);
+
+		change_desc_attributes(entry, attributes);
+
+		VERBOSE("New attributes:\n");
+		print_block_or_page_desc(*entry, level);
+
+		xlat_arch_tlbi_va_el(base_va, 1);
+
+		base_va += PAGE_SIZE;
+	}
+
+	xlat_arch_tlbi_va_sync();
+
+	return 0;
+}

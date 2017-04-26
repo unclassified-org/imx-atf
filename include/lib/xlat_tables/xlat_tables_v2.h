@@ -199,5 +199,36 @@ int mmap_remove_dynamic_region_ctx(xlat_ctx_t *ctx,
 
 #endif /* PLAT_XLAT_TABLES_DYNAMIC */
 
+/*
+ * Change the memory attributes of the memory region starting from a given
+ * virtual address in a set of translation tables.
+ *
+ * The base address of the memory region must be aligned on a page boundary.
+ * The size of this memory region must be a multiple of a page size.
+ * The memory region must be already mapped by the given translation tables,
+ * and it must be mapped at the lowest possible granularity.
+ *
+ * Return 0 on success, a negative value on error.
+ *
+ * In case of error, the memory attributes remain unchanged and this function
+ * has no effect.
+ *
+ * ctx
+ *   Translation context to work on.
+ * base_va:
+ *   Virtual address of the 1st page to change the attributes of.
+ * size:
+ *   Size in bytes of the memory region.
+ * attributes:
+ *   New attributes of the page tables.
+ *
+ * NOTE: The caller of this function must be able to write to the translation
+ * tables, i.e. the memory where they are stored must be mapped with read-write
+ * access permissions. This function assumes it is the case. If this is not
+ * the case then this function might trigger a data abort exception.
+ */
+int change_mem_attributes(xlat_ctx_t *ctx, uintptr_t base_va, size_t size,
+			mmap_attr_t attributes);
+
 #endif /*__ASSEMBLY__*/
 #endif /* __XLAT_TABLES_V2_H__ */
