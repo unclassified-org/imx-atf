@@ -62,4 +62,10 @@ void mm_shim_prepare_mmu_context_el1(uint64_t *mair, uint64_t *tcr,
 /* Handle on the MM shim translation context */
 extern xlat_ctx_handle_t mm_shim_xlat_ctx_handle;
 
+/* General setup functions for the S-EL1/S-EL0 context. */
+
+void mm_shim_setup(void);
+
+void mm_shim_prepare_context(void);
+
 #endif /* __MM_SHIM_H__ */

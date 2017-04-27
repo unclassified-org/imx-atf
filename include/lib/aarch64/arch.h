@@ -139,8 +139,8 @@
 			(1 << 18) | (1 << 16) | (1 << 11) | (1 << 5) |  \
 			(1 << 4))
 
-#define SCTLR_EL1_RES1  ((1 << 29) | (1 << 28) | (1 << 23) | (1 << 22) | \
-			(1 << 20) | (1 << 11))
+#define SCTLR_EL1_RES1  (SCTLR_AFE_BIT | SCTLR_TRE_BIT | (1 << 23) | \
+			(1 << 22) | SCTLR_UWXN_BIT | (1 << 11))
 #define SCTLR_AARCH32_EL1_RES1 \
 			((1 << 23) | (1 << 22) | (1 << 11) | (1 << 4) | \
 			(1 << 3))
@@ -149,14 +149,25 @@
 #define SCTLR_A_BIT		(1 << 1)
 #define SCTLR_C_BIT		(1 << 2)
 #define SCTLR_SA_BIT		(1 << 3)
+#define SCTLR_SA0_BIT		(1 << 4)
 #define SCTLR_CP15BEN_BIT	(1 << 5)
+#define SCTLR_ITD_BIT		(1 << 7)
+#define SCTLR_SED_BIT		(1 << 8)
+#define SCTLR_UMA_BIT		(1 << 9)
 #define SCTLR_I_BIT		(1 << 12)
+#define SCTLR_V_BIT		(1 << 13)
+#define SCTLR_DZE_BIT		(1 << 14)
 #define SCTLR_UCT_BIT		(1 << 15)
 #define SCTLR_NTWI_BIT		(1 << 16)
 #define SCTLR_NTWE_BIT		(1 << 18)
 #define SCTLR_WXN_BIT		(1 << 19)
+#define SCTLR_UWXN_BIT		(1 << 20)
+#define SCTLR_E0E_BIT		(1 << 24)
 #define SCTLR_EE_BIT		(1 << 25)
 #define SCTLR_UCI_BIT		(1 << 26)
+#define SCTLR_TRE_BIT		(1 << 28)
+#define SCTLR_AFE_BIT		(1 << 29)
+#define SCTLR_TE_BIT		(1 << 30)
 
 /* CPACR_El1 definitions */
 #define CPACR_EL1_FPEN(x)	(x << 20)
