@@ -28,8 +28,19 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <arch.h>
+#include <arch_helpers.h>
+#include <assert.h>
+#include <common_def.h>
 #include <platform_def.h>
+#include <string.h>
+#include <types.h>
+#include <utils.h>
 #include <xlat_tables_v2.h>
+#include "../../../lib/xlat_tables_v2/aarch64/xlat_tables_arch.h"
+#include "../../../lib/xlat_tables_v2/xlat_tables_private.h"
+
+static mmap_region_t mm_shim_mmap[MM_SHIM_MMAP_REGIONS + 1];
 
 static uint64_t mm_shim_xlat_tables[MM_SHIM_MAX_XLAT_TABLES][XLAT_TABLE_ENTRIES]
 			__aligned(XLAT_TABLE_SIZE) __section("mm_shim_xlat_table");
@@ -37,3 +48,97 @@ static uint64_t mm_shim_xlat_tables[MM_SHIM_MAX_XLAT_TABLES][XLAT_TABLE_ENTRIES]
 static uint64_t mm_shim_base_xlat_table[NUM_BASE_LEVEL_ENTRIES]
 			__aligned(NUM_BASE_LEVEL_ENTRIES * sizeof(uint64_t))
 			__section("mm_shim_xlat_table_base");
+
+#if PLAT_XLAT_TABLES_DYNAMIC
+static int mm_shim_xlat_tables_mapped_regions[MM_SHIM_XLAT_TABLES];
+#endif /* PLAT_XLAT_TABLES_DYNAMIC */
+
+static xlat_ctx_t mm_shim_xlat_ctx = {
+
+	.pa_max_address = PLAT_PHY_ADDR_SPACE_SIZE - 1,
+	.va_max_address = PLAT_VIRT_ADDR_SPACE_SIZE - 1,
+
+	.mmap = mm_shim_mmap,
+	.mmap_num = MM_SHIM_MMAP_REGIONS,
+
+	.tables = mm_shim_xlat_tables,
+	.tables_num = MM_SHIM_MAX_XLAT_TABLES,
+#if PLAT_XLAT_TABLES_DYNAMIC
+	.tables_mapped_regions = mm_shim_xlat_tables_mapped_regions,
+#endif /* PLAT_XLAT_TABLES_DYNAMIC */
+
+	.base_table = mm_shim_base_xlat_table,
+	.base_table_entries = NUM_BASE_LEVEL_ENTRIES,
+
+	.max_pa = 0,
+	.max_va = 0,
+
+	.next_table = 0,
+
+	.base_level = XLAT_TABLE_LEVEL_BASE,
+
+	.initialized = 0
+};
+
+/* Export a handle on the MM shim translation context */
+xlat_ctx_handle_t mm_shim_xlat_ctx_handle = &mm_shim_xlat_ctx;
+
+static unsigned long long calc_physical_addr_size_bits(
+					unsigned long long max_addr)
+{
+	/* Physical address can't exceed 48 bits */
+	assert((max_addr & ADDR_MASK_48_TO_63) == 0);
+
+	/* 48 bits address */
+	if (max_addr & ADDR_MASK_44_TO_47)
+		return TCR_PS_BITS_256TB;
+
+	/* 44 bits address */
+	if (max_addr & ADDR_MASK_42_TO_43)
+		return TCR_PS_BITS_16TB;
+
+	/* 42 bits address */
+	if (max_addr & ADDR_MASK_40_TO_41)
+		return TCR_PS_BITS_4TB;
+
+	/* 40 bits address */
+	if (max_addr & ADDR_MASK_36_TO_39)
+		return TCR_PS_BITS_1TB;
+
+	/* 36 bits address */
+	if (max_addr & ADDR_MASK_32_TO_35)
+		return TCR_PS_BITS_64GB;
+
+	return TCR_PS_BITS_4GB;
+}
+
+void mm_shim_prepare_mmu_context_el1(uint64_t *mair, uint64_t *tcr,
+				     uint64_t *ttbr, uint64_t *sctlr)
+{
+	assert(mair && tcr && ttbr && sctlr);
+
+	/* Set attributes in the right indices of the MAIR */
+	*mair = MAIR_ATTR_SET(ATTR_DEVICE, ATTR_DEVICE_INDEX);
+	*mair |= MAIR_ATTR_SET(ATTR_IWBWA_OWBWA_NTR,
+			       ATTR_IWBWA_OWBWA_NTR_INDEX);
+	*mair |= MAIR_ATTR_SET(ATTR_NON_CACHEABLE,
+			       ATTR_NON_CACHEABLE_INDEX);
+
+	/* Invalidate TLBs at the target exception level */
+	tlbivmalle1();
+
+	/* Set TCR bits as well. */
+	/* Inner & outer WBWA & shareable + T0SZ = 32 */
+	unsigned long long tcr_ps_bits;
+	tcr_ps_bits = calc_physical_addr_size_bits(PLAT_PHY_ADDR_SPACE_SIZE);
+	*tcr = TCR_SH_INNER_SHAREABLE | TCR_RGN_OUTER_WBA |
+		TCR_RGN_INNER_WBA |
+		(64 - __builtin_ctzl(PLAT_VIRT_ADDR_SPACE_SIZE));
+	*tcr |= tcr_ps_bits << TCR_EL1_IPS_SHIFT;
+
+	/* Set TTBR bits as well */
+	*ttbr = (uint64_t) mm_shim_base_xlat_table;
+
+	*sctlr = SCTLR_EL1_RES1;
+	*sctlr |= SCTLR_WXN_BIT | SCTLR_C_BIT | SCTLR_M_BIT;
+}
