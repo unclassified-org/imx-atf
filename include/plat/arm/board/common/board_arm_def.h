@@ -61,6 +61,7 @@
 #endif
 
 #if defined(IMAGE_BL31)
+#define MM_SHIM_MMAP_REGIONS	6
 #define MM_SHIM_MAX_XLAT_TABLES	4
 #endif
 

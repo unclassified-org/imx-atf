@@ -31,6 +31,8 @@
 #ifndef __MM_SHIM_H__
 #define __MM_SHIM_H__
 
+#include <xlat_tables_v2.h>
+
 /* Assembly source */
 extern uintptr_t mm_shim_exceptions;
 
@@ -51,5 +53,13 @@ extern uintptr_t __MM_SHIM_XLAT_TABLES_END__;
 #define MM_SHIM_XLAT_TABLES_BASE	(uintptr_t)(&__MM_SHIM_XLAT_TABLES_START__)
 #define MM_SHIM_XLAT_TABLES_END		(uintptr_t)(&__MM_SHIM_XLAT_TABLES_END__)
 #define MM_SHIM_XLAT_TABLES_SIZE	(MM_SHIM_XLAT_TABLES_END - MM_SHIM_XLAT_TABLES_BASE)
+
+/* Setup functions for the translation tables and MMU. */
+
+void mm_shim_prepare_mmu_context_el1(uint64_t *mair, uint64_t *tcr,
+				     uint64_t *ttbr, uint64_t *sctlr);
+
+/* Handle on the MM shim translation context */
+extern xlat_ctx_handle_t mm_shim_xlat_ctx_handle;
 
 #endif /* __MM_SHIM_H__ */
