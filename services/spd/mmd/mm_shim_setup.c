@@ -35,6 +35,7 @@
 #include <context_mgmt.h>
 #include <common_def.h>
 #include <debug.h>
+#include <plat_arm.h>
 #include <platform_def.h>
 #include <types.h>
 #include <xlat_tables_v2.h>
@@ -59,6 +60,8 @@ void mm_shim_setup(void)
 				MM_SHIM_EXCEPTIONS_SIZE);
 	mmap_add_region_ctx(mm_shim_xlat_ctx_handle,
 			&sel1_exception_vectors);
+
+	mmap_add_ctx(mm_shim_xlat_ctx_handle, plat_arm_get_sel0_mmap());
 
 	init_xlat_tables_ctx(mm_shim_xlat_ctx_handle);
 

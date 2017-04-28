@@ -17,10 +17,12 @@
 #endif
 
 extern const mmap_region_t plat_arm_mmap[];
+extern const mmap_region_t plat_arm_sel0_mmap[];
 
 /* Weak definitions may be overridden in specific ARM standard platform */
 #pragma weak plat_get_ns_image_entrypoint
 #pragma weak plat_arm_get_mmap
+#pragma weak plat_arm_get_sel0_mmap
 
 /* Conditionally provide a weak definition of plat_get_syscnt_freq2 to avoid
  * conflicts with the definition in plat/common. */
@@ -186,6 +188,11 @@ void arm_configure_sys_timer(void)
 const mmap_region_t *plat_arm_get_mmap(void)
 {
 	return plat_arm_mmap;
+}
+
+const mmap_region_t *plat_arm_get_sel0_mmap(void)
+{
+	return plat_arm_sel0_mmap;
 }
 
 #ifdef ARM_SYS_CNTCTL_BASE
