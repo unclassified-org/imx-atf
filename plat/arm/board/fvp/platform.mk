@@ -130,6 +130,10 @@ BL31_SOURCES		+=	plat/arm/board/fvp/fvp_bl31_setup.c		\
 				${FVP_INTERCONNECT_SOURCES}			\
 				${FVP_SECURITY_SOURCES}
 
+ifeq (${SDEI_SUPPORT},1)
+BL31_SOURCES		+=	plat/arm/board/fvp/fvp_sdei.c
+endif
+
 # Disable the PSCI platform compatibility layer
 ENABLE_PLAT_COMPAT	:= 	0
 
