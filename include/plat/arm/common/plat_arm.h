@@ -206,6 +206,8 @@ int plat_arm_get_alt_image_source(
 unsigned int plat_arm_calc_core_pos(u_register_t mpidr);
 const mmap_region_t *plat_arm_get_mmap(void);
 
+const mmap_region_t *plat_arm_get_sel0_mmap(void);
+
 /* Allow platform to override psci_pm_ops during runtime */
 const plat_psci_ops_t *plat_arm_psci_override_pm_ops(plat_psci_ops_t *ops);
 
