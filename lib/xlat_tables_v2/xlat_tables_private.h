@@ -38,6 +38,11 @@ CASSERT(IS_POWER_OF_TWO(PLAT_PHY_ADDR_SPACE_SIZE),
 typedef struct {
 
 	/*
+	 * Exception Level in which this context is used.
+	 */
+	int exception_level;
+
+	/*
 	 * Max allowed Virtual and Physical Addresses.
 	 */
 	unsigned long long pa_max_address;
@@ -130,7 +135,7 @@ typedef enum  {
  * virtual address. It must be called for every translation table entry that is
  * modified.
  */
-void xlat_arch_tlbi_va(uintptr_t va);
+void xlat_arch_tlbi_va(int el, uintptr_t va);
 
 /*
  * This function has to be called at the end of any code that uses the function
@@ -186,6 +191,6 @@ void init_xlat_tables_arch(unsigned long long max_pa);
 void enable_mmu_arch(unsigned int flags, uint64_t *base_table);
 
 /* Return 1 if the MMU of this Exception Level is enabled, 0 otherwise. */
-int is_mmu_enabled(void);
+int is_mmu_enabled(int el);
 
 #endif /* __XLAT_TABLES_PRIVATE_H__ */

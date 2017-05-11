@@ -40,6 +40,8 @@ static int xlat_tables_mapped_regions[MAX_XLAT_TABLES];
 
 xlat_ctx_t tf_xlat_ctx = {
 
+	/* exception_level is set at runtime */
+
 	.pa_max_address = PLAT_PHY_ADDR_SPACE_SIZE - 1,
 	.va_max_address = PLAT_VIRT_ADDR_SPACE_SIZE - 1,
 
@@ -108,11 +110,12 @@ int mmap_remove_dynamic_region(uintptr_t base_va, size_t size)
 
 void init_xlat_tables(void)
 {
-	assert(!is_mmu_enabled());
+	tf_xlat_ctx.exception_level = xlat_arch_current_el();
+	assert(!is_mmu_enabled(tf_xlat_ctx.exception_level));
 	assert(!tf_xlat_ctx.initialized);
 	print_mmap(tf_xlat_ctx.mmap);
 	tf_xlat_ctx.execute_never_mask =
-			xlat_arch_get_xn_desc(xlat_arch_current_el());
+			xlat_arch_get_xn_desc(tf_xlat_ctx.exception_level);
 	init_xlation_table(&tf_xlat_ctx);
 	xlat_tables_print(&tf_xlat_ctx);
 

@@ -72,20 +72,19 @@ static unsigned long long xlat_arch_get_max_supported_pa(void)
 }
 #endif /* ENABLE_ASSERTIONS*/
 
-int is_mmu_enabled(void)
+int is_mmu_enabled(int el)
 {
-#if IMAGE_EL == 1
-	assert(IS_IN_EL(1));
-	return (read_sctlr_el1() & SCTLR_M_BIT) != 0;
-#elif IMAGE_EL == 3
-	assert(IS_IN_EL(3));
-	return (read_sctlr_el3() & SCTLR_M_BIT) != 0;
-#endif
+	if (el == 1) {
+		return (read_sctlr_el1() & SCTLR_M_BIT) != 0;
+	} else {
+		assert (el == 3);
+		return (read_sctlr_el3() & SCTLR_M_BIT) != 0;
+	}
 }
 
 #if PLAT_XLAT_TABLES_DYNAMIC
 
-void xlat_arch_tlbi_va(uintptr_t va)
+void xlat_arch_tlbi_va(int el, uintptr_t va)
 {
 	/*
 	 * Ensure the translation table write has drained into memory before
@@ -93,13 +92,12 @@ void xlat_arch_tlbi_va(uintptr_t va)
 	 */
 	dsbishst();
 
-#if IMAGE_EL == 1
-	assert(IS_IN_EL(1));
-	tlbivaae1is(TLBI_ADDR(va));
-#elif IMAGE_EL == 3
-	assert(IS_IN_EL(3));
-	tlbivae3is(TLBI_ADDR(va));
-#endif
+	if (el == 1) {
+		tlbivaae1is(TLBI_ADDR(va));
+	} else {
+		assert (el == 3);
+		tlbivae3is(TLBI_ADDR(va));
+	}
 }
 
 void xlat_arch_tlbi_va_sync(void)

@@ -21,14 +21,14 @@ static unsigned long long xlat_arch_get_max_supported_pa(void)
 }
 #endif /* ENABLE_ASSERTIONS*/
 
-int is_mmu_enabled(void)
+int is_mmu_enabled(int el __unused)
 {
 	return (read_sctlr() & SCTLR_M_BIT) != 0;
 }
 
 #if PLAT_XLAT_TABLES_DYNAMIC
 
-void xlat_arch_tlbi_va(uintptr_t va)
+void xlat_arch_tlbi_va(int el __unused, uintptr_t va)
 {
 	/*
 	 * Ensure the translation table write has drained into memory before
