@@ -55,6 +55,18 @@ void arm_tzc400_setup(void)
 			ARM_DRAM2_BASE, ARM_DRAM2_END,
 			TZC_REGION_S_NONE,
 			PLAT_ARM_TZC_NS_DEV_ACCESS);
+
+#if SPM
+	/* Region 4 set to cover Non-Secure access to the communication buffer
+	 * shared with the secure world. */
+	tzc400_configure_region(PLAT_ARM_TZC_FILTERS,
+				4,
+				SECURE_PARTITION_NS_BUF_BASE,
+				(SECURE_PARTITION_NS_BUF_BASE +
+				 SECURE_PARTITION_NS_BUF_SIZE) - 1,
+				TZC_REGION_S_NONE,
+				PLAT_ARM_TZC_NS_DEV_ACCESS);
+#endif
 #else
 	/* Allow secure access only to DRAM for EL3 payloads. */
 	tzc400_configure_region0(TZC_REGION_S_RDWR, 0);
