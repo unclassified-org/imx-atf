@@ -37,6 +37,9 @@ endif
 ifneq (${ARM_BL31_IN_DRAM}, 1)
         $(error "Error: SPM is only supported when BL31 is in Secure DRAM.")
 endif
+ifneq (${PLAT}, fvp)
+        $(error "Error: SPM is only supported on the ARM Base FVP")
+endif
 
 # SPM sources
 
