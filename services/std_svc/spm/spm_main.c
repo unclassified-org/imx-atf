@@ -45,7 +45,7 @@
 /*******************************************************************************
  * SPM Payload state
  ******************************************************************************/
-spm_context_t spm_ctx;
+static spm_context_t spm_ctx;
 unsigned int sp_init_in_progress;
 
 /*******************************************************************************
@@ -73,13 +73,13 @@ void spm_setup_next_eret_into_sel0(cpu_context_t *secure_context)
  * 3. Calls el3_exit() so that the EL3 system and general purpose registers
  *    from the spm_ctx->cpu_ctx are used to enter the secure payload image.
  ******************************************************************************/
-static uint64_t spm_synchronous_sp_entry(spm_context_t *spm_ctx)
+static uint64_t spm_synchronous_sp_entry(spm_context_t *spm_ctx_ptr)
 {
 	uint64_t rc;
 
-	assert(spm_ctx != NULL);
-	assert(spm_ctx->c_rt_ctx == 0);
-	assert(cm_get_context(SECURE) == &spm_ctx->cpu_ctx);
+	assert(spm_ctx_ptr != NULL);
+	assert(spm_ctx_ptr->c_rt_ctx == 0);
+	assert(cm_get_context(SECURE) == &spm_ctx_ptr->cpu_ctx);
 
 	/* Apply the Secure EL1 system register context and switch to it */
 	cm_el1_sysregs_context_restore(SECURE);
@@ -87,9 +87,9 @@ static uint64_t spm_synchronous_sp_entry(spm_context_t *spm_ctx)
 
 	VERBOSE("%s: We're about to enter the SPM payload...\n", __func__);
 
-	rc = spm_secure_partition_enter(&spm_ctx->c_rt_ctx);
+	rc = spm_secure_partition_enter(&spm_ctx_ptr->c_rt_ctx);
 #if DEBUG
-	spm_ctx->c_rt_ctx = 0;
+	spm_ctx_ptr->c_rt_ctx = 0;
 #endif
 
 	return rc;
@@ -105,15 +105,15 @@ static uint64_t spm_synchronous_sp_entry(spm_context_t *spm_ctx)
  * 3. It does not need to save any general purpose or EL3 system register state
  *    as the generic smc entry routine should have saved those.
  ******************************************************************************/
-static void spm_synchronous_sp_exit(spm_context_t *spm_ctx, uint64_t ret)
+static void spm_synchronous_sp_exit(spm_context_t *spm_ctx_ptr, uint64_t ret)
 {
-	assert(spm_ctx != NULL);
+	assert(spm_ctx_ptr != NULL);
 	/* Save the Secure EL1 system register context */
-	assert(cm_get_context(SECURE) == &spm_ctx->cpu_ctx);
+	assert(cm_get_context(SECURE) == &spm_ctx_ptr->cpu_ctx);
 	cm_el1_sysregs_context_save(SECURE);
 
-	assert(spm_ctx->c_rt_ctx != 0);
-	spm_secure_partition_exit(spm_ctx->c_rt_ctx, ret);
+	assert(spm_ctx_ptr->c_rt_ctx != 0);
+	spm_secure_partition_exit(spm_ctx_ptr->c_rt_ctx, ret);
 
 	/* Should never reach here */
 	assert(0);
@@ -163,16 +163,16 @@ int32_t spm_init(void)
  * entry point info for the secure payload
  ******************************************************************************/
 static void spm_init_spm_ep_state(struct entry_point_info *spm_entry_point,
-				uint64_t pc,
-				spm_context_t *spm_ctx)
+				  uint64_t pc,
+				  spm_context_t *spm_ctx_ptr)
 {
 	uint32_t ep_attr;
 
 	assert(spm_entry_point);
 	assert(pc);
-	assert(spm_ctx);
+	assert(spm_ctx_ptr);
 
-	cm_set_context(&spm_ctx->cpu_ctx, SECURE);
+	cm_set_context(&spm_ctx_ptr->cpu_ctx, SECURE);
 
 	/* initialise an entrypoint to set up the CPU context */
 	ep_attr = SECURE | EP_ST_ENABLE;
