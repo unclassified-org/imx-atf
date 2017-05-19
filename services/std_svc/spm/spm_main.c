@@ -45,7 +45,7 @@
 /*******************************************************************************
  * SPM Payload state
  ******************************************************************************/
-static spm_context_t spm_ctx;
+static spm_context_t spm_ctx[PLATFORM_CORE_COUNT];
 unsigned int sp_init_in_progress;
 
 /*******************************************************************************
@@ -130,8 +130,11 @@ int32_t spm_init(void)
 {
 	entry_point_info_t *spm_entry_point_info;
 	uint64_t rc;
+	unsigned int linear_id;
 
 	VERBOSE("%s entry\n", __func__);
+	linear_id = plat_my_core_pos();
+
 
 	/*
 	 * Get information about the Secure Payload (BL32) image. Its
@@ -151,7 +154,7 @@ int32_t spm_init(void)
 	 * Arrange for an entry into the secure payload.
 	 */
 	sp_init_in_progress = 1;
-	rc = spm_synchronous_sp_entry(&spm_ctx);
+	rc = spm_synchronous_sp_entry(&spm_ctx[linear_id]);
 	assert(rc == 0);
 	sp_init_in_progress = 0;
 	return rc;
@@ -197,8 +200,10 @@ static void spm_init_spm_ep_state(struct entry_point_info *spm_entry_point,
 int32_t spm_setup(void)
 {
 	entry_point_info_t *spm_ep_info;
+	unsigned int linear_id;
 
 	VERBOSE("%s entry\n", __func__);
+	linear_id = plat_my_core_pos();
 
 	/*
 	 * Get information about the Secure Payload (BL32) image. Its
@@ -220,7 +225,7 @@ int32_t spm_setup(void)
 	if (!spm_ep_info->pc)
 		return 1;
 
-	spm_init_spm_ep_state(spm_ep_info, spm_ep_info->pc, &spm_ctx);
+	spm_init_spm_ep_state(spm_ep_info, spm_ep_info->pc, &spm_ctx[linear_id]);
 
 	/*
 	 * Setup translation tables and calculate values of system registers.
@@ -293,7 +298,9 @@ uint64_t spm_smc_handler(uint32_t smc_fid,
 			 uint64_t flags)
 {
 	cpu_context_t *ns_cpu_context;
-	unsigned int ns;
+	unsigned int ns, linear_id;
+
+	linear_id = plat_my_core_pos();
 
 	/* Determine which security state this SMC originated from */
 	ns = is_caller_non_secure(flags);
@@ -311,7 +318,7 @@ uint64_t spm_smc_handler(uint32_t smc_fid,
 				 * original request through a synchronous entry into the SPM
 				 * payload. Jump back to the original C runtime context.
 				 */
-				spm_synchronous_sp_exit(&spm_ctx, x1);
+				spm_synchronous_sp_exit(&spm_ctx[linear_id], x1);
 				assert(0);
 			}
 
@@ -350,7 +357,8 @@ uint64_t spm_smc_handler(uint32_t smc_fid,
 			 * Restore the secure world context and prepare for
 			 * entry in S-EL0
 			 */
-			assert(&spm_ctx.cpu_ctx == cm_get_context(SECURE));
+			assert(&spm_ctx[linear_id].cpu_ctx ==
+			       cm_get_context(SECURE));
 			cm_el1_sysregs_context_restore(SECURE);
 			cm_set_next_eret_context(SECURE);
 
@@ -358,7 +366,7 @@ uint64_t spm_smc_handler(uint32_t smc_fid,
 			 * TODO: Print a warning if X2 is not NULL since that is
 			 * the recommended approach
 			 */
-			SMC_RET4(&spm_ctx.cpu_ctx,
+			SMC_RET4(&spm_ctx[linear_id].cpu_ctx,
 				 smc_fid, x2, x3, plat_my_core_pos());
 
 		default:
