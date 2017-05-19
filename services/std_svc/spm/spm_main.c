@@ -46,7 +46,6 @@
  * SPM Payload state
  ******************************************************************************/
 static spm_context_t spm_ctx[PLATFORM_CORE_COUNT];
-unsigned int sp_init_in_progress;
 
 /*******************************************************************************
  * Replace the S-EL1 re-entry information with S-EL0 re-entry
@@ -151,12 +150,15 @@ int32_t spm_init(void)
 	secure_partition_prepare_context();
 
 	/*
-	 * Arrange for an entry into the secure payload.
+	 * Set the state of the Secure partition and arrange for an entry into
+	 * the secure payload.
 	 */
-	sp_init_in_progress = 1;
+	set_sp_pstate(spm_ctx[linear_id].flags, SP_PSTATE_OFF);
 	rc = spm_synchronous_sp_entry(&spm_ctx[linear_id]);
 	assert(rc == 0);
-	sp_init_in_progress = 0;
+
+	/* Mark the partition as being ON on this CPU */
+	set_sp_pstate(spm_ctx[linear_id].flags, SP_PSTATE_ON);
 	return rc;
 }
 
@@ -312,7 +314,7 @@ uint64_t spm_smc_handler(uint32_t smc_fid,
 			cm_el1_sysregs_context_save(SECURE);
 			spm_setup_next_eret_into_sel0(handle);
 
-			if (sp_init_in_progress) {
+			if (SP_PSTATE_OFF == get_sp_pstate(spm_ctx[linear_id].flags)) {
 				/*
 				 * SPM reports completion. The SPM must have initiated the
 				 * original request through a synchronous entry into the SPM
