@@ -34,6 +34,25 @@
 #include <context.h>
 
 /*******************************************************************************
+ * Secure Partition PM state information e.g. partition is suspended,
+ * uninitialised etc and macros to access the state information in the per-cpu
+ * flags
+ ******************************************************************************/
+#define SP_PSTATE_OFF		0
+#define SP_PSTATE_ON		1
+#define SP_PSTATE_SUSPEND	2
+#define SP_PSTATE_SHIFT		0
+#define SP_PSTATE_MASK		0x3
+#define get_sp_pstate(flags)	(((flags) >> SP_PSTATE_SHIFT) & SP_PSTATE_MASK)
+#define clr_sp_pstate(flags)	((flags) &= ~(SP_PSTATE_MASK <<		\
+					      SP_PSTATE_SHIFT))
+#define set_sp_pstate(fl, pst)	do {					\
+				    clr_sp_pstate(fl);			\
+				    (fl) |= ((pst) & SP_PSTATE_MASK) <<	\
+					    SP_PSTATE_SHIFT;		\
+				} while (0);
+
+/*******************************************************************************
  * Constants that allow assembler code to preserve callee-saved registers of the
  * C runtime context while performing a security state switch.
  ******************************************************************************/
@@ -59,6 +78,7 @@
 
 typedef struct spm_context {
 	uint64_t c_rt_ctx;
+	uint32_t flags;
 	cpu_context_t cpu_ctx;
 } spm_context_t;
 
