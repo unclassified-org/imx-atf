@@ -168,9 +168,9 @@ int32_t spm_init(void)
  * a context data structure, this function will initialize the SPM context and
  * entry point info for the secure payload
  ******************************************************************************/
-static void spm_init_spm_ep_state(struct entry_point_info *sp_ep_info,
-				  uint64_t pc,
-				  secure_partition_context_t *sp_ctx_ptr)
+void spm_init_sp_ep_state(struct entry_point_info *sp_ep_info,
+			  uint64_t pc,
+			  secure_partition_context_t *sp_ctx_ptr)
 {
 	uint32_t ep_attr;
 
@@ -228,7 +228,7 @@ int32_t spm_setup(void)
 	if (!secure_partition_ep_info->pc)
 		return 1;
 
-	spm_init_spm_ep_state(secure_partition_ep_info,
+	spm_init_sp_ep_state(secure_partition_ep_info,
 			      secure_partition_ep_info->pc,
 			      &sp_ctx[linear_id]);
 
