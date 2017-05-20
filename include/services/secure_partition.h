@@ -82,10 +82,19 @@ typedef struct secure_partition_boot_info {
 	secure_partition_mp_info_t 	*mp_info;
 } secure_partition_boot_info_t;
 
+typedef struct secure_partition_warm_boot_info {
+	param_header_t 			h;
+	unsigned long 			sp_stack_base;
+	unsigned long 			sp_shared_buf_base;
+	unsigned int 			sp_pcpu_stack_size;
+	unsigned int 			sp_pcpu_shared_buf_size;
+	secure_partition_mp_info_t 	mp_info;
+} sp_warm_boot_info_t;
+
 /* General setup functions for secure partitions context. */
 
 void secure_partition_setup(void);
-
+void secure_partition_prepare_warm_boot_context(void);
 void secure_partition_prepare_context(void);
 
 #endif /* __SECURE_PARTITION_H__ */

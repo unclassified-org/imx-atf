@@ -69,7 +69,7 @@ void secure_partition_setup(void)
 	VERBOSE("S-EL1/S-EL0 context setup end.\n");
 }
 
-void secure_partition_prepare_context(void)
+void secure_partition_prepare_context()
 {
 	VERBOSE("Updating S-EL1/S-EL0 context registers.\n");
 
@@ -204,5 +204,133 @@ void secure_partition_prepare_context(void)
 	 * I'm not sure.
 	 */
 	write_daifset(DAIF_FIQ_BIT | DAIF_IRQ_BIT | DAIF_ABT_BIT | DAIF_DBG_BIT);
+
+}
+
+
+void secure_partition_prepare_warm_boot_context(void)
+{
+	cpu_context_t *ctx = cm_get_context(SECURE);
+	unsigned int linear_id = plat_my_core_pos();
+	secure_partition_boot_info_t *cold_boot_info;
+	sp_warm_boot_info_t *warm_boot_info;
+
+	assert(ctx);
+
+	/* MMU-related registers */
+
+	uint64_t mair_el1, tcr_el1, ttbr_el1, sctlr_el1, sp_el0;
+
+	secure_partition_prepare_xlat_context(&mair_el1, &tcr_el1, &ttbr_el1,
+					      &sctlr_el1);
+
+	sctlr_el1 |= SCTLR_UCI_BIT | SCTLR_NTWE_BIT | SCTLR_NTWI_BIT |
+		     SCTLR_UCT_BIT | SCTLR_DZE_BIT | SCTLR_I_BIT |
+		     SCTLR_UMA_BIT | SCTLR_SA0_BIT | SCTLR_A_BIT;
+	sctlr_el1 &= ~SCTLR_E0E_BIT;
+
+	write_ctx_reg(get_sysregs_ctx(ctx), CTX_SCTLR_EL1, sctlr_el1);
+	write_ctx_reg(get_sysregs_ctx(ctx), CTX_TTBR0_EL1, ttbr_el1);
+	write_ctx_reg(get_sysregs_ctx(ctx), CTX_MAIR_EL1, mair_el1);
+	write_ctx_reg(get_sysregs_ctx(ctx), CTX_TCR_EL1, tcr_el1);
+
+	/* Other system registers */
+
+	write_ctx_reg(get_sysregs_ctx(ctx),
+		      CTX_VBAR_EL1,
+		      SECURE_PARTITION_EXCEPTIONS_BASE_PTR);
+
+	uint64_t cpacr_el1 = read_ctx_reg(get_sysregs_ctx(ctx), CTX_CPACR_EL1);
+	cpacr_el1 |= CPACR_EL1_FPEN(CPACR_EL1_FP_TRAP_NONE);
+	write_ctx_reg(get_sysregs_ctx(ctx), CTX_CPACR_EL1, cpacr_el1);
+
+	/* 
+	 * Obtain a pointer to the information passed to the partition during a
+	 * cold boot.
+	 */
+	cold_boot_info = (secure_partition_boot_info_t *) 
+		plat_arm_get_secure_partition_boot_info(NULL);
+
+	/*
+	 * Get a pointer to the base address of the communication buffer between
+	 * SPM and the secure partition for this CPU. Update the base address
+	 * and size of this buffer.
+	 */
+	warm_boot_info = (sp_warm_boot_info_t *) (
+		cold_boot_info->sp_shared_buf_base 
+		+ (linear_id * cold_boot_info->sp_pcpu_shared_buf_size));
+
+	warm_boot_info->sp_shared_buf_base = (unsigned long) warm_boot_info;
+	warm_boot_info->sp_pcpu_shared_buf_size = 
+		cold_boot_info->sp_pcpu_shared_buf_size;
+
+	/* 
+	 * Populate the boot information for this secondary CPU. It is based
+	 * upon the cold boot information where applicable
+	 */
+	warm_boot_info->h.type = cold_boot_info->h.type;
+	warm_boot_info->h.version = cold_boot_info->h.version;
+	warm_boot_info->h.size = sizeof(sp_warm_boot_info_t);
+	warm_boot_info->h.attr = 0;
+	
+	/* Find the base address of this CPU's descending stack */
+	warm_boot_info->sp_stack_base = cold_boot_info->sp_stack_base + 
+		((linear_id + 1) * cold_boot_info->sp_pcpu_stack_size);
+	warm_boot_info->sp_pcpu_stack_size = cold_boot_info->sp_pcpu_stack_size;
+
+	warm_boot_info->mp_info.mpidr = read_mpidr_el1();
+	warm_boot_info->mp_info.linear_id = linear_id;
+	warm_boot_info->mp_info.flags = 0;
+
+	/* General-Purpose registers */
+
+	/*
+	 * X0: Virtual address of a buffer shared between EL3 and Secure EL0.
+	 *     The buffer will be mapped in the Secure EL1 translation regime
+	 *     with Normal IS WBWA attributes and RO data and Execute Never
+	 *     instruction access permissions.
+	 *
+	 * X1: Size of the buffer in bytes
+	 *
+	 * X2: cookie value (Implementation Defined)
+	 *
+	 * X3: cookie value (Implementation Defined)
+	 */
+	write_ctx_reg(get_gpregs_ctx(ctx),
+		      CTX_GPREG_X0,
+		      (unsigned long) warm_boot_info);
+	write_ctx_reg(get_gpregs_ctx(ctx),
+		      CTX_GPREG_X1,
+		      (unsigned long) warm_boot_info->sp_pcpu_shared_buf_size);
+	write_ctx_reg(get_gpregs_ctx(ctx),
+		      CTX_GPREG_X2,
+		      0);
+	write_ctx_reg(get_gpregs_ctx(ctx),
+		      CTX_GPREG_X3,
+		      0);
+
+	/* X4 to X30 = 0, done by cm_init_my_context() */
+
+	/*
+	 * SP_EL0: A non-zero value will indicate that the Dispatcher has
+	 * initialized the stack pointer for the current CPU through
+	 * implementation defined means. The value will be 0 otherwise.
+	 */
+	sp_el0 = warm_boot_info->sp_stack_base;;
+	write_ctx_reg(get_gpregs_ctx(ctx), CTX_GPREG_SP_EL0, sp_el0);
+
+	/*
+	 * PSTATE
+	 * D,A,I,F=1
+	 * SpSel = 0 ### XXX : TODO
+	 * NRW = 0 ### XXX : TODO
+	 */
+
+	/* XXX : TODO : Does this go here or in secure_partition_exceptions.S ?
+	 * I'd say this goes here in case the payload wants to change it, but
+	 * I'm not sure.
+	 */
+	write_daifset(DAIF_FIQ_BIT | DAIF_IRQ_BIT | DAIF_ABT_BIT | DAIF_DBG_BIT);
+
 
 }

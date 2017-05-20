@@ -46,6 +46,7 @@ endif
 
 SPM_SOURCES		:=	$(addprefix services/std_svc/spm/,	\
 				spm_main.c				\
+				spm_pwr_mgmt.c				\
 				${ARCH}/spm_helpers.S			\
 				secure_partition_setup.c		\
 				secure_partition_xlat_tables.c		\

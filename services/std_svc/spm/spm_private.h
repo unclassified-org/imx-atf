@@ -84,12 +84,22 @@ typedef struct secure_partition_context {
 } secure_partition_context_t;
 
 extern uintptr_t warm_boot_entry_point;
+extern secure_partition_context_t sp_ctx[PLATFORM_CORE_COUNT];
+extern const spd_pm_ops_t spm_pm;
 
 uint64_t spm_secure_partition_enter(uint64_t *c_rt_ctx);
 void __dead2 spm_secure_partition_exit(uint64_t c_rt_ctx, uint64_t ret);
+uint64_t spm_synchronous_sp_entry(secure_partition_context_t *sp_ctx_ptr);
+void spm_synchronous_sp_exit(secure_partition_context_t *sp_ctx_ptr,
+			     uint64_t ret);
 void spm_init_sp_ep_state(struct entry_point_info *sp_ep_info,
 			  uint64_t pc,
 			  secure_partition_context_t *sp_ctx_ptr);
+
+void secure_partition_prepare_context(void);
+uint64_t spm_secure_partition_enter(uint64_t *c_rt_ctx);
+void __dead2 spm_secure_partition_exit(uint64_t c_rt_ctx, uint64_t ret);
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* __SPM_PRIVATE_H__ */
