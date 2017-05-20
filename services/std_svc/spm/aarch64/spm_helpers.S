@@ -46,15 +46,15 @@ func spm_secure_partition_enter
 	/* Make space for the registers that we're going to save */
 	mov	x3, sp
 	str	x3, [x0, #0]
-	sub	sp, sp, #SPM_C_RT_CTX_SIZE
+	sub	sp, sp, #SP_C_RT_CTX_SIZE
 
 	/* Save callee-saved registers on to the stack */
-	stp	x19, x20, [sp, #SPM_C_RT_CTX_X19]
-	stp	x21, x22, [sp, #SPM_C_RT_CTX_X21]
-	stp	x23, x24, [sp, #SPM_C_RT_CTX_X23]
-	stp	x25, x26, [sp, #SPM_C_RT_CTX_X25]
-	stp	x27, x28, [sp, #SPM_C_RT_CTX_X27]
-	stp	x29, x30, [sp, #SPM_C_RT_CTX_X29]
+	stp	x19, x20, [sp, #SP_C_RT_CTX_X19]
+	stp	x21, x22, [sp, #SP_C_RT_CTX_X21]
+	stp	x23, x24, [sp, #SP_C_RT_CTX_X23]
+	stp	x25, x26, [sp, #SP_C_RT_CTX_X25]
+	stp	x27, x28, [sp, #SP_C_RT_CTX_X27]
+	stp	x29, x30, [sp, #SP_C_RT_CTX_X29]
 
 	/* ---------------------------------------------------------------------
 	 * Everything is setup now. el3_exit() will use the secure context to
@@ -79,12 +79,12 @@ func spm_secure_partition_exit
 	mov	sp, x0
 
 	/* Restore callee-saved registers on to the stack */
-	ldp	x19, x20, [x0, #(SPM_C_RT_CTX_X19 - SPM_C_RT_CTX_SIZE)]
-	ldp	x21, x22, [x0, #(SPM_C_RT_CTX_X21 - SPM_C_RT_CTX_SIZE)]
-	ldp	x23, x24, [x0, #(SPM_C_RT_CTX_X23 - SPM_C_RT_CTX_SIZE)]
-	ldp	x25, x26, [x0, #(SPM_C_RT_CTX_X25 - SPM_C_RT_CTX_SIZE)]
-	ldp	x27, x28, [x0, #(SPM_C_RT_CTX_X27 - SPM_C_RT_CTX_SIZE)]
-	ldp	x29, x30, [x0, #(SPM_C_RT_CTX_X29 - SPM_C_RT_CTX_SIZE)]
+	ldp	x19, x20, [x0, #(SP_C_RT_CTX_X19 - SP_C_RT_CTX_SIZE)]
+	ldp	x21, x22, [x0, #(SP_C_RT_CTX_X21 - SP_C_RT_CTX_SIZE)]
+	ldp	x23, x24, [x0, #(SP_C_RT_CTX_X23 - SP_C_RT_CTX_SIZE)]
+	ldp	x25, x26, [x0, #(SP_C_RT_CTX_X25 - SP_C_RT_CTX_SIZE)]
+	ldp	x27, x28, [x0, #(SP_C_RT_CTX_X27 - SP_C_RT_CTX_SIZE)]
+	ldp	x29, x30, [x0, #(SP_C_RT_CTX_X29 - SP_C_RT_CTX_SIZE)]
 
 	/* ---------------------------------------------------------------------
 	 * This should take us back to the instruction after the call to the
