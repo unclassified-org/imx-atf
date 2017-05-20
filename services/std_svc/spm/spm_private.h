@@ -85,7 +85,9 @@ typedef struct secure_partition_context {
 
 uint64_t spm_secure_partition_enter(uint64_t *c_rt_ctx);
 void __dead2 spm_secure_partition_exit(uint64_t c_rt_ctx, uint64_t ret);
-
+void spm_init_sp_ep_state(struct entry_point_info *sp_ep_info,
+			  uint64_t pc,
+			  secure_partition_context_t *sp_ctx_ptr);
 #endif /* __ASSEMBLY__ */
 
 #endif /* __SPM_PRIVATE_H__ */
