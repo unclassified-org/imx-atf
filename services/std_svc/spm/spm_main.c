@@ -82,7 +82,6 @@ static uint64_t spm_synchronous_sp_entry(spm_context_t *spm_ctx)
 	assert(cm_get_context(SECURE) == &spm_ctx->cpu_ctx);
 
 	/* Apply the Secure EL1 system register context and switch to it */
-	secure_partition_prepare_context();
 	cm_el1_sysregs_context_restore(SECURE);
 	cm_set_next_eret_context(SECURE);
 
@@ -141,7 +140,12 @@ int32_t spm_init(void)
 	spm_entry_point_info = bl31_plat_get_next_image_ep_info(SECURE);
 	assert(spm_entry_point_info);
 
+	/*
+	 * Initialise the common context and then overlay the S-EL0 specific
+	 * context on top of it.
+	 */
 	cm_init_my_context(spm_entry_point_info);
+	secure_partition_prepare_context();
 
 	/*
 	 * Arrange for an entry into the secure payload.
