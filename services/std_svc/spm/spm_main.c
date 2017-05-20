@@ -47,7 +47,7 @@ uintptr_t warm_boot_entry_point;
 /*******************************************************************************
  * Secure Partition context information.
  ******************************************************************************/
-static secure_partition_context_t sp_ctx[PLATFORM_CORE_COUNT];
+secure_partition_context_t sp_ctx[PLATFORM_CORE_COUNT];
 
 /*******************************************************************************
  * Replace the S-EL1 re-entry information with S-EL0 re-entry
@@ -74,7 +74,7 @@ void spm_setup_next_eret_into_sel0(cpu_context_t *secure_context)
  * 3. Calls el3_exit() so that the EL3 system and general purpose registers
  *    from the sp_ctx->cpu_ctx are used to enter the secure payload image.
  ******************************************************************************/
-static uint64_t spm_synchronous_sp_entry(secure_partition_context_t *sp_ctx_ptr)
+uint64_t spm_synchronous_sp_entry(secure_partition_context_t *sp_ctx_ptr)
 {
 	uint64_t rc;
 
@@ -106,8 +106,8 @@ static uint64_t spm_synchronous_sp_entry(secure_partition_context_t *sp_ctx_ptr)
  * 3. It does not need to save any general purpose or EL3 system register state
  *    as the generic smc entry routine should have saved those.
  ******************************************************************************/
-static void spm_synchronous_sp_exit(secure_partition_context_t *sp_ctx_ptr,
-				    uint64_t ret)
+void spm_synchronous_sp_exit(secure_partition_context_t *sp_ctx_ptr,
+			     uint64_t ret)
 {
 	assert(sp_ctx_ptr != NULL);
 	/* Save the Secure EL1 system register context */
@@ -159,7 +159,13 @@ int32_t spm_init(void)
 	set_sp_pstate(sp_ctx[linear_id].flags, SP_PSTATE_OFF);
 	rc = spm_synchronous_sp_entry(&sp_ctx[linear_id]);
 	assert(rc == 0);
-
+	
+	/*
+	 * The partition has been successfully initialized. Register power
+	 * managemnt hooks with PSCI
+	 */
+	psci_register_spd_pm_hook(&spm_pm);
+	
 	/* Mark the partition as being ON on this CPU */
 	set_sp_pstate(sp_ctx[linear_id].flags, SP_PSTATE_ON);
 	return rc;
