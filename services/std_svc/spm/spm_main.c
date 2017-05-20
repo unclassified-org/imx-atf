@@ -43,9 +43,9 @@
 #include "spm_private.h"
 
 /*******************************************************************************
- * SPM Payload state
+ * Secure Partition context information.
  ******************************************************************************/
-static spm_context_t spm_ctx[PLATFORM_CORE_COUNT];
+static secure_partition_context_t sp_ctx[PLATFORM_CORE_COUNT];
 
 /*******************************************************************************
  * Replace the S-EL1 re-entry information with S-EL0 re-entry
@@ -66,29 +66,29 @@ void spm_setup_next_eret_into_sel0(cpu_context_t *secure_context)
 
 /*******************************************************************************
  * This function takes an SP context pointer and:
- * 1. Applies the S-EL1 system register context from spm_ctx->cpu_ctx.
+ * 1. Applies the S-EL1 system register context from sp_ctx->cpu_ctx.
  * 2. Saves the current C runtime state (callee-saved registers) on the stack
  *    frame and saves a reference to this state.
  * 3. Calls el3_exit() so that the EL3 system and general purpose registers
- *    from the spm_ctx->cpu_ctx are used to enter the secure payload image.
+ *    from the sp_ctx->cpu_ctx are used to enter the secure payload image.
  ******************************************************************************/
-static uint64_t spm_synchronous_sp_entry(spm_context_t *spm_ctx_ptr)
+static uint64_t spm_synchronous_sp_entry(secure_partition_context_t *sp_ctx_ptr)
 {
 	uint64_t rc;
 
-	assert(spm_ctx_ptr != NULL);
-	assert(spm_ctx_ptr->c_rt_ctx == 0);
-	assert(cm_get_context(SECURE) == &spm_ctx_ptr->cpu_ctx);
+	assert(sp_ctx_ptr != NULL);
+	assert(sp_ctx_ptr->c_rt_ctx == 0);
+	assert(cm_get_context(SECURE) == &sp_ctx_ptr->cpu_ctx);
 
 	/* Apply the Secure EL1 system register context and switch to it */
 	cm_el1_sysregs_context_restore(SECURE);
 	cm_set_next_eret_context(SECURE);
 
-	VERBOSE("%s: We're about to enter the SPM payload...\n", __func__);
+	VERBOSE("%s: We're about to enter the Secure partition...\n", __func__);
 
-	rc = spm_secure_partition_enter(&spm_ctx_ptr->c_rt_ctx);
+	rc = spm_secure_partition_enter(&sp_ctx_ptr->c_rt_ctx);
 #if DEBUG
-	spm_ctx_ptr->c_rt_ctx = 0;
+	sp_ctx_ptr->c_rt_ctx = 0;
 #endif
 
 	return rc;
@@ -96,23 +96,24 @@ static uint64_t spm_synchronous_sp_entry(spm_context_t *spm_ctx_ptr)
 
 
 /*******************************************************************************
- * This function takes an SPM context pointer and:
- * 1. Saves the S-EL1 system register context tp spm_ctx->cpu_ctx.
+ * This function takes a Secure partition context pointer and:
+ * 1. Saves the S-EL1 system register context tp sp_ctx->cpu_ctx.
  * 2. Restores the current C runtime state (callee saved registers) from the
  *    stack frame using the reference to this state saved in
  *    spm_secure_partition_enter().
  * 3. It does not need to save any general purpose or EL3 system register state
  *    as the generic smc entry routine should have saved those.
  ******************************************************************************/
-static void spm_synchronous_sp_exit(spm_context_t *spm_ctx_ptr, uint64_t ret)
+static void spm_synchronous_sp_exit(secure_partition_context_t *sp_ctx_ptr,
+				    uint64_t ret)
 {
-	assert(spm_ctx_ptr != NULL);
+	assert(sp_ctx_ptr != NULL);
 	/* Save the Secure EL1 system register context */
-	assert(cm_get_context(SECURE) == &spm_ctx_ptr->cpu_ctx);
+	assert(cm_get_context(SECURE) == &sp_ctx_ptr->cpu_ctx);
 	cm_el1_sysregs_context_save(SECURE);
 
-	assert(spm_ctx_ptr->c_rt_ctx != 0);
-	spm_secure_partition_exit(spm_ctx_ptr->c_rt_ctx, ret);
+	assert(sp_ctx_ptr->c_rt_ctx != 0);
+	spm_secure_partition_exit(sp_ctx_ptr->c_rt_ctx, ret);
 
 	/* Should never reach here */
 	assert(0);
@@ -127,7 +128,7 @@ static void spm_synchronous_sp_exit(spm_context_t *spm_ctx_ptr, uint64_t ret)
  ******************************************************************************/
 int32_t spm_init(void)
 {
-	entry_point_info_t *spm_entry_point_info;
+	entry_point_info_t *secure_partition_ep_info;
 	uint64_t rc;
 	unsigned int linear_id;
 
@@ -139,26 +140,26 @@ int32_t spm_init(void)
 	 * Get information about the Secure Payload (BL32) image. Its
 	 * absence is a critical failure.
 	 */
-	spm_entry_point_info = bl31_plat_get_next_image_ep_info(SECURE);
-	assert(spm_entry_point_info);
+	secure_partition_ep_info = bl31_plat_get_next_image_ep_info(SECURE);
+	assert(secure_partition_ep_info);
 
 	/*
 	 * Initialise the common context and then overlay the S-EL0 specific
 	 * context on top of it.
 	 */
-	cm_init_my_context(spm_entry_point_info);
+	cm_init_my_context(secure_partition_ep_info);
 	secure_partition_prepare_context();
 
 	/*
 	 * Set the state of the Secure partition and arrange for an entry into
 	 * the secure payload.
 	 */
-	set_sp_pstate(spm_ctx[linear_id].flags, SP_PSTATE_OFF);
-	rc = spm_synchronous_sp_entry(&spm_ctx[linear_id]);
+	set_sp_pstate(sp_ctx[linear_id].flags, SP_PSTATE_OFF);
+	rc = spm_synchronous_sp_entry(&sp_ctx[linear_id]);
 	assert(rc == 0);
 
 	/* Mark the partition as being ON on this CPU */
-	set_sp_pstate(spm_ctx[linear_id].flags, SP_PSTATE_ON);
+	set_sp_pstate(sp_ctx[linear_id].flags, SP_PSTATE_ON);
 	return rc;
 }
 
@@ -167,31 +168,31 @@ int32_t spm_init(void)
  * a context data structure, this function will initialize the SPM context and
  * entry point info for the secure payload
  ******************************************************************************/
-static void spm_init_spm_ep_state(struct entry_point_info *spm_entry_point,
+static void spm_init_spm_ep_state(struct entry_point_info *sp_ep_info,
 				  uint64_t pc,
-				  spm_context_t *spm_ctx_ptr)
+				  secure_partition_context_t *sp_ctx_ptr)
 {
 	uint32_t ep_attr;
 
-	assert(spm_entry_point);
+	assert(sp_ep_info);
 	assert(pc);
-	assert(spm_ctx_ptr);
+	assert(sp_ctx_ptr);
 
-	cm_set_context(&spm_ctx_ptr->cpu_ctx, SECURE);
+	cm_set_context(&sp_ctx_ptr->cpu_ctx, SECURE);
 
 	/* initialise an entrypoint to set up the CPU context */
 	ep_attr = SECURE | EP_ST_ENABLE;
 	if (read_sctlr_el3() & SCTLR_EE_BIT)
 		ep_attr |= EP_EE_BIG;
-	SET_PARAM_HEAD(spm_entry_point, PARAM_EP, VERSION_1, ep_attr);
+	SET_PARAM_HEAD(sp_ep_info, PARAM_EP, VERSION_1, ep_attr);
 
-	spm_entry_point->pc = pc;
+	sp_ep_info->pc = pc;
 	/* The SPM payload runs in S-EL0 */
-	spm_entry_point->spsr = SPSR_64(MODE_EL0,
-					MODE_SP_EL0,
-					DISABLE_ALL_EXCEPTIONS);
+	sp_ep_info->spsr = SPSR_64(MODE_EL0,
+				   MODE_SP_EL0,
+				   DISABLE_ALL_EXCEPTIONS);
 
-	zeromem(&spm_entry_point->args, sizeof(spm_entry_point->args));
+	zeromem(&sp_ep_info->args, sizeof(sp_ep_info->args));
 }
 
 /*******************************************************************************
@@ -201,7 +202,7 @@ static void spm_init_spm_ep_state(struct entry_point_info *spm_entry_point,
  ******************************************************************************/
 int32_t spm_setup(void)
 {
-	entry_point_info_t *spm_ep_info;
+	entry_point_info_t *secure_partition_ep_info;
 	unsigned int linear_id;
 
 	VERBOSE("%s entry\n", __func__);
@@ -211,8 +212,8 @@ int32_t spm_setup(void)
 	 * Get information about the Secure Payload (BL32) image. Its
 	 * absence is a critical failure.
 	 */
-	spm_ep_info = bl31_plat_get_next_image_ep_info(SECURE);
-	if (!spm_ep_info) {
+	secure_partition_ep_info = bl31_plat_get_next_image_ep_info(SECURE);
+	if (!secure_partition_ep_info) {
 		WARN("No SPM provided by BL2 boot loader, Booting device"
 			" without SPM initialization. SMCs destined for SPM"
 			" will return SMC_UNK\n");
@@ -224,10 +225,12 @@ int32_t spm_setup(void)
 	 * signalling failure initializing the service. We bail out without
 	 * registering any handlers
 	 */
-	if (!spm_ep_info->pc)
+	if (!secure_partition_ep_info->pc)
 		return 1;
 
-	spm_init_spm_ep_state(spm_ep_info, spm_ep_info->pc, &spm_ctx[linear_id]);
+	spm_init_spm_ep_state(secure_partition_ep_info,
+			      secure_partition_ep_info->pc,
+			      &sp_ctx[linear_id]);
 
 	/*
 	 * Setup translation tables and calculate values of system registers.
@@ -314,20 +317,24 @@ uint64_t spm_smc_handler(uint32_t smc_fid,
 			cm_el1_sysregs_context_save(SECURE);
 			spm_setup_next_eret_into_sel0(handle);
 
-			if (SP_PSTATE_OFF == get_sp_pstate(spm_ctx[linear_id].flags)) {
+			if (SP_PSTATE_OFF ==
+			    get_sp_pstate(sp_ctx[linear_id].flags)) {
 				/*
-				 * SPM reports completion. The SPM must have initiated the
-				 * original request through a synchronous entry into the SPM
-				 * payload. Jump back to the original C runtime context.
+				 * SPM reports completion. The SPM must have
+				 * initiated the original request through a
+				 * synchronous entry into the secure
+				 * partition. Jump back to the original C
+				 * runtime context.
 				 */
-				spm_synchronous_sp_exit(&spm_ctx[linear_id], x1);
+				spm_synchronous_sp_exit(&sp_ctx[linear_id], x1);
 				assert(0);
 			}
 
 			/*
-			 * This is the result from the Secure partition of an earlier
-			 * request. Copy the result into the non-secure context, save
-			 * the secure state and return to the non-secure state.
+			 * This is the result from the Secure partition of an
+			 * earlier request. Copy the result into the non-secure
+			 * context, save the secure state and return to the
+			 * non-secure state.
 			 */
 
 			/* Get a reference to the non-secure context */
@@ -359,7 +366,7 @@ uint64_t spm_smc_handler(uint32_t smc_fid,
 			 * Restore the secure world context and prepare for
 			 * entry in S-EL0
 			 */
-			assert(&spm_ctx[linear_id].cpu_ctx ==
+			assert(&sp_ctx[linear_id].cpu_ctx ==
 			       cm_get_context(SECURE));
 			cm_el1_sysregs_context_restore(SECURE);
 			cm_set_next_eret_context(SECURE);
@@ -368,7 +375,7 @@ uint64_t spm_smc_handler(uint32_t smc_fid,
 			 * TODO: Print a warning if X2 is not NULL since that is
 			 * the recommended approach
 			 */
-			SMC_RET4(&spm_ctx[linear_id].cpu_ctx,
+			SMC_RET4(&sp_ctx[linear_id].cpu_ctx,
 				 smc_fid, x2, x3, plat_my_core_pos());
 
 		default:
