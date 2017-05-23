@@ -76,7 +76,7 @@ typedef struct secure_partition_boot_info {
 	unsigned int 			sp_pcpu_stack_size;
 	unsigned int 			sp_heap_size;
 	unsigned int 			sp_ns_comm_buf_size;
-	unsigned int 			sp_shared_buf_size;
+	unsigned int 			sp_pcpu_shared_buf_size;
 	unsigned int 			num_sp_mem_regions;
 	unsigned int 			num_cpus;
 	secure_partition_mp_info_t 	*mp_info;
