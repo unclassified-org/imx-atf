@@ -42,6 +42,8 @@
 #include <xlat_tables_v2.h>
 #include "spm_private.h"
 
+uintptr_t warm_boot_entry_point;
+
 /*******************************************************************************
  * Secure Partition context information.
  ******************************************************************************/
@@ -319,8 +321,19 @@ uint64_t spm_smc_handler(uint32_t smc_fid,
 
 			if (SP_PSTATE_OFF ==
 			    get_sp_pstate(sp_ctx[linear_id].flags)) {
+				/* 
+				 * Record the entry point for secondary
+				 * CPUs. This will be provided by the partition
+				 * on the primary cpu after a cold boot.
+				 */
+				if (!warm_boot_entry_point) {
+					assert(x2);
+					assert(x1 == 0);
+					warm_boot_entry_point = x2;
+				}
+
 				/*
-				 * SPM reports completion. The SPM must have
+				 * SP reports completion. The SPM must have
 				 * initiated the original request through a
 				 * synchronous entry into the secure
 				 * partition. Jump back to the original C
