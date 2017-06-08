@@ -100,6 +100,25 @@ void xlat_arch_tlbi_va(uintptr_t va)
 #endif
 }
 
+void xlat_arch_tlbi_va_el(uintptr_t va, int el)
+{
+	assert((el == 1) || (el == 3));
+
+	/* Cannot invalidate TLBs of a higher exception level */
+	assert(el <= xlat_arch_current_el());
+
+	/*
+	 * Ensure the translation table write has drained into memory before
+	 * invalidating the TLB entry.
+	 */
+	dsbishst();
+
+	if (el == 1)
+		tlbivaae1is(TLBI_ADDR(va));
+	else /* el == 3 */
+		tlbivae3is(TLBI_ADDR(va));
+}
+
 void xlat_arch_tlbi_va_sync(void)
 {
 	/*
@@ -188,6 +207,7 @@ uint64_t xlat_arch_get_xn_desc(int el)
 	}
 
 /* Define EL1 and EL3 variants of the function enabling the MMU */
+/* TODO: relax that? Might want to enable the MMU at EL1 while running at EL3 */
 #if IMAGE_EL == 1
 DEFINE_ENABLE_MMU_EL(1, tlbivmalle1)
 #elif IMAGE_EL == 3

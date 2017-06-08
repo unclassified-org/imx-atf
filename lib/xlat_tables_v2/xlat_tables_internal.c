@@ -314,7 +314,7 @@ static void xlat_tables_unmap_region(xlat_ctx_t *ctx, mmap_region_t *mm,
 		if (action == ACTION_WRITE_BLOCK_ENTRY) {
 
 			table_base[table_idx] = INVALID_DESC;
-			xlat_arch_tlbi_va(table_idx_va);
+			xlat_arch_tlbi_va_el(table_idx_va, ctx->exception_level);
 
 		} else if (action == ACTION_RECURSE_INTO_TABLE) {
 
@@ -330,7 +330,8 @@ static void xlat_tables_unmap_region(xlat_ctx_t *ctx, mmap_region_t *mm,
 			 */
 			if (xlat_table_is_empty(ctx, subtable)) {
 				table_base[table_idx] = INVALID_DESC;
-				xlat_arch_tlbi_va(table_idx_va);
+				xlat_arch_tlbi_va_el(table_idx_va,
+						ctx->exception_level);
 			}
 
 		} else {
@@ -1111,6 +1112,7 @@ void xlat_tables_print(xlat_ctx_t *ctx)
 {
 #if LOG_LEVEL >= LOG_LEVEL_VERBOSE
 	VERBOSE("Translation tables state:\n");
+	VERBOSE("  Targeted EL: %i\n", ctx->exception_level);
 	VERBOSE("  Max allowed PA:  0x%llx\n", ctx->pa_max_address);
 	VERBOSE("  Max allowed VA:  %p\n", (void *) ctx->va_max_address);
 	VERBOSE("  Max mapped PA:   0x%llx\n", ctx->max_pa);
@@ -1143,13 +1145,16 @@ void init_xlat_tables_ctx(xlat_ctx_t *ctx)
 {
 	mmap_region_t *mm = ctx->mmap;
 
-	assert(!is_mmu_enabled());
 	assert(!ctx->initialized);
 
 	print_mmap(mm);
 
-	ctx->execute_never_mask =
-			xlat_arch_get_xn_desc(xlat_arch_current_el());
+	if (ctx->exception_level == XLAT_CTX_EXCEPTION_LEVEL_CURRENT)
+		ctx->exception_level = xlat_arch_current_el();
+
+	assert((ctx->exception_level >= 1) && (ctx->exception_level <= 3));
+
+	ctx->execute_never_mask = xlat_arch_get_xn_desc(ctx->exception_level);
 
 	/* All tables must be zeroed before mapping any region. */
 
@@ -1189,6 +1194,7 @@ void init_xlat_tables_ctx(xlat_ctx_t *ctx)
 
 void init_xlat_tables(void)
 {
+	assert(!is_mmu_enabled());
 	init_xlat_tables_ctx(&tf_xlat_ctx);
 }
 

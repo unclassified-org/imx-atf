@@ -40,6 +40,7 @@ typedef enum  {
  * modified.
  */
 void xlat_arch_tlbi_va(uintptr_t va);
+void xlat_arch_tlbi_va_el(uintptr_t va, int el);
 
 /*
  * This function has to be called at the end of any code that uses the function

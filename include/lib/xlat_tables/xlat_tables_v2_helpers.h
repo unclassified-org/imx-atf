@@ -90,6 +90,11 @@ struct xlat_ctx {
 	 * level of this translation context.
 	 */
 	uint64_t execute_never_mask;
+
+	/*
+	 * Exception level that this translation context configures.
+	 */
+	int exception_level;
 };
 
 #if PLAT_XLAT_TABLES_DYNAMIC
@@ -107,8 +112,9 @@ struct xlat_ctx {
 #endif /* PLAT_XLAT_TABLES_DYNAMIC */
 
 
-#define _REGISTER_XLAT_CONTEXT(_ctx_name, _mmap_count, _xlat_tables_count,	\
-			_virt_addr_space_size, _phy_addr_space_size)		\
+#define _REGISTER_XLAT_CONTEXT_EL(_ctx_name, _mmap_count, _xlat_tables_count,	\
+			_virt_addr_space_size, _phy_addr_space_size,		\
+			_exception_level)					\
 	CASSERT(CHECK_VIRT_ADDR_SPACE_SIZE(_virt_addr_space_size),		\
 		assert_invalid_virtual_addr_space_size_for_##_ctx_name);	\
 										\
@@ -140,11 +146,20 @@ struct xlat_ctx {
 		.tables = _ctx_name##_xlat_tables,				\
 		.tables_num = _xlat_tables_count,				\
 		 _REGISTER_DYNMAP_STRUCT(_ctx_name)				\
+		.exception_level = _exception_level,				\
 		.max_pa = 0,							\
 		.max_va = 0,							\
 		.next_table = 0,						\
 		.initialized = 0,						\
 	}
+
+#define XLAT_CTX_EXCEPTION_LEVEL_CURRENT	(-1)
+
+#define _REGISTER_XLAT_CONTEXT(_ctx_name, _mmap_count, _xlat_tables_count,	\
+			_virt_addr_space_size, _phy_addr_space_size)		\
+	_REGISTER_XLAT_CONTEXT_EL(_ctx_name, _mmap_count, _xlat_tables_count,	\
+		_virt_addr_space_size, _phy_addr_space_size,			\
+		XLAT_CTX_EXCEPTION_LEVEL_CURRENT)
 
 #endif /*__ASSEMBLY__*/
 
