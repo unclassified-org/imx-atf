@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2014-2017, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -11,6 +11,7 @@
 #include <psci.h>
 #include <runtime_instr.h>
 #include <runtime_svc.h>
+#include <sdei.h>
 #include <smcc_helpers.h>
 #include <std_svc.h>
 #include <stdint.h>
@@ -79,6 +80,13 @@ uintptr_t std_svc_smc_handler(uint32_t smc_fid,
 
 		SMC_RET1(handle, ret);
 	}
+
+#if SDEI_SUPPORT
+	if (is_sdei_fid(smc_fid)) {
+		return sdei_smc_handler(smc_fid, x1, x2, x3, x4, cookie, handle,
+				flags);
+	}
+#endif
 
 	switch (smc_fid) {
 	case ARM_STD_SVC_CALL_COUNT:

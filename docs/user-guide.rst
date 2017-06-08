@@ -529,6 +529,9 @@ Common build options
    optional. It is only needed if the platform makefile specifies that it
    is required in order to build the ``fwu_fip`` target.
 
+-  ``SDEI_SUPPORT``: Enable support for Software Delegated Exception Interface
+   to BL31 image.
+
 -  ``SEPARATE_CODE_AND_RODATA``: Whether code and read-only data should be
    isolated on separate memory pages. This is a trade-off between security and
    memory usage. See "Isolating code and read-only data on separate memory

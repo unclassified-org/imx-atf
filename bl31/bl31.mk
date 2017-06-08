@@ -22,6 +22,15 @@ ifeq (${ENABLE_PMF}, 1)
 BL31_SOURCES		+=	lib/pmf/pmf_main.c
 endif
 
+ifeq (${SDEI_SUPPORT},1)
+ifeq (${ARCH},aarch32)
+  $(error SDEI is only supported for AArch64)
+endif
+BL31_SOURCES		+=	services/std_svc/sdei/sdei_event.c	\
+				services/std_svc/sdei/sdei_intr_mgmt.c	\
+				services/std_svc/sdei/sdei_main.c
+endif
+
 BL31_LINKERFILE		:=	bl31/bl31.ld.S
 
 # Flag used to indicate if Crash reporting via console should be included
