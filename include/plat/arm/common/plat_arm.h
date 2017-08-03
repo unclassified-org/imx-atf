@@ -12,6 +12,9 @@
 #include <cpu_data.h>
 #include <stdint.h>
 #include <utils_def.h>
+#if SPM && defined(IMAGE_BL31)
+#include <secure_partition.h>
+#endif
 
 /*******************************************************************************
  * Forward declarations
@@ -207,9 +210,11 @@ int plat_arm_get_alt_image_source(
 	uintptr_t *image_spec);
 unsigned int plat_arm_calc_core_pos(u_register_t mpidr);
 const mmap_region_t *plat_arm_get_mmap(void);
-
-const mmap_region_t *plat_arm_get_sel0_mmap(void);
-
+#if SPM && defined(IMAGE_BL31)
+const mmap_region_t *plat_arm_get_secure_partition_mmap(void *cookie);
+const secure_partition_boot_info_t
+*plat_arm_get_secure_partition_boot_info(void *cookie);
+#endif
 /* Allow platform to override psci_pm_ops during runtime */
 const plat_psci_ops_t *plat_arm_psci_override_pm_ops(plat_psci_ops_t *ops);
 

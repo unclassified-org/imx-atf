@@ -53,16 +53,21 @@
  * enable dynamic memory mapping.
  */
 #if defined(IMAGE_BL31) || defined(IMAGE_BL32)
+#if SPM
+# define PLAT_ARM_MMAP_ENTRIES		7
+# define MAX_XLAT_TABLES		5
+#else
 # define PLAT_ARM_MMAP_ENTRIES		6
 # define MAX_XLAT_TABLES		4
+#endif
 #else
 # define PLAT_ARM_MMAP_ENTRIES		10
 # define MAX_XLAT_TABLES		5
 #endif
 
-#if defined(IMAGE_BL31)
-#define MM_SHIM_MMAP_REGIONS	6
-#define MM_SHIM_MAX_XLAT_TABLES	4
+#if SPM && defined(IMAGE_BL31)
+# define SECURE_PARTITION_MMAP_REGIONS		7
+# define SECURE_PARTITION_MAX_XLAT_TABLES	10
 #endif
 
 /*
@@ -85,7 +90,11 @@
  * PLAT_ARM_MAX_BL31_SIZE is calculated using the current BL31 debug size plus a
  * little space for growth.
  */
+#if SPM
+#define PLAT_ARM_MAX_BL31_SIZE		0x200000
+#else
 #define PLAT_ARM_MAX_BL31_SIZE		0x1E000
+#endif
 
 #endif /* ARM_BOARD_OPTIMISE_MEM */
 

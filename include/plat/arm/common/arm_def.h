@@ -163,6 +163,84 @@
 						MT_MEMORY | MT_RW | MT_SECURE)
 #endif
 
+#if SPM
+/* The maximum size of the S-EL0 payload can be 3MB */
+# define SECURE_PARTITION_BASE		BL32_BASE
+# define SECURE_PARTITION_SIZE		ULL(0x300000)
+
+#ifdef IMAGE_BL2
+/* In BL2 all memory allocated to the SPM Payload image is marked as RW. */
+#define SECURE_PARTITION_IMAGE_MMAP		MAP_REGION_FLAT(		\
+						SECURE_PARTITION_BASE,		\
+						SECURE_PARTITION_SIZE,		\
+						MT_MEMORY | MT_RW | MT_SECURE)
+#endif
+#ifdef IMAGE_BL31
+/* All SPM Payload memory is marked as code in S-EL1 */
+#define SECURE_PARTITION_IMAGE_MMAP		MAP_REGION_GRANULARITY(		\
+						SECURE_PARTITION_BASE,		\
+						SECURE_PARTITION_BASE,		\
+						SECURE_PARTITION_SIZE,		\
+						MT_CODE | MT_SECURE,		\
+						PAGE_SIZE)
+#endif
+
+/*
+ * SPM Payload memory is followed by memory shared between EL3 and S-EL0. It is
+ * used by the latter to push data into the former and hence mapped with RO
+ * permission.
+ */
+#define SECURE_PARTITION_SPM_BUF_BASE		(SECURE_PARTITION_BASE + 	\
+						 SECURE_PARTITION_SIZE)
+#define SECURE_PARTITION_SPM_BUF_SIZE		ULL(0x100000)
+#define SECURE_PARTITION_SPM_BUF_MMAP		MAP_REGION_GRANULARITY(		\
+						SECURE_PARTITION_SPM_BUF_BASE,	\
+						SECURE_PARTITION_SPM_BUF_BASE,	\
+						SECURE_PARTITION_SPM_BUF_SIZE,	\
+						MT_MEMORY | MT_RO | MT_SECURE,	\
+						PAGE_SIZE)
+
+/*
+ * Shared memory is followed by memory shared between Normal world and S-EL0 for
+ * passing data during service requests. It will be marked as RW and NS.
+ */
+#define SECURE_PARTITION_NS_BUF_BASE		(SECURE_PARTITION_SPM_BUF_BASE +\
+						 SECURE_PARTITION_SPM_BUF_SIZE)
+#define SECURE_PARTITION_NS_BUF_SIZE		ULL(0x10000)
+#define SECURE_PARTITION_NS_BUF_MMAP		MAP_REGION_GRANULARITY(		\
+						SECURE_PARTITION_NS_BUF_BASE,	\
+						SECURE_PARTITION_NS_BUF_BASE,	\
+						SECURE_PARTITION_NS_BUF_SIZE,	\
+						MT_MEMORY | MT_RW | MT_NS,	\
+						PAGE_SIZE)
+
+/*
+ * Memory shared with Normal world is followed by RW memory. First there is
+ * stack memory for all CPUs and then there is the common heap memory. Both are
+ * marked with RW permissions.
+ */
+#define SECURE_PARTITION_STACK_BASE		(SECURE_PARTITION_NS_BUF_BASE +	\
+						 SECURE_PARTITION_NS_BUF_SIZE)
+#define SECURE_PARTITION_STACK_PCPU_SIZE	ULL(0x2000)
+#define SECURE_PARTITION_STACK_TOTAL_SIZE	(PLATFORM_CORE_COUNT *		\
+					 SECURE_PARTITION_STACK_PCPU_SIZE)
+
+#define SECURE_PARTITION_HEAP_BASE		(SECURE_PARTITION_STACK_BASE +	\
+					 SECURE_PARTITION_STACK_TOTAL_SIZE)
+#define SECURE_PARTITION_HEAP_SIZE		BL32_LIMIT - SECURE_PARTITION_HEAP_BASE
+
+#define SECURE_PARTITION_RW_MMAP		MAP_REGION_GRANULARITY(		\
+						SECURE_PARTITION_STACK_BASE,	\
+						SECURE_PARTITION_STACK_BASE,	\
+						(BL32_LIMIT - 			\
+						 SECURE_PARTITION_STACK_BASE),	\
+						MT_MEMORY | MT_RW | MT_SECURE,	\
+						PAGE_SIZE)
+
+/* Total number of memory regions with distinct properties */
+#define SECURE_PARTITION_NUM_MEM_REGIONS	6
+#endif
+
 /*
  * The number of regions like RO(code), coherent and data required by
  * different BL stages which need to be mapped in the MMU.
@@ -316,7 +394,7 @@
 
 /* BL32 is mandatory in AArch32 */
 #ifndef AARCH32
-#ifdef SPD_none
+#if defined(SPD_none) && !SPM
 #undef BL32_BASE
 #endif /* SPD_none */
 #endif
