@@ -37,51 +37,20 @@
 #include <types.h>
 #include <utils.h>
 #include <xlat_tables_v2.h>
-#include "../../../lib/xlat_tables_v2/aarch64/xlat_tables_arch.h"
-#include "../../../lib/xlat_tables_v2/xlat_tables_private.h"
 
-static mmap_region_t mm_shim_mmap[MM_SHIM_MMAP_REGIONS + 1];
-
-static uint64_t mm_shim_xlat_tables[MM_SHIM_MAX_XLAT_TABLES][XLAT_TABLE_ENTRIES]
-			__aligned(XLAT_TABLE_SIZE) __section("mm_shim_xlat_table");
-
-static uint64_t mm_shim_base_xlat_table[NUM_BASE_LEVEL_ENTRIES]
-			__aligned(NUM_BASE_LEVEL_ENTRIES * sizeof(uint64_t))
-			__section("mm_shim_xlat_table_base");
-
-#if PLAT_XLAT_TABLES_DYNAMIC
-static int mm_shim_xlat_tables_mapped_regions[MM_SHIM_XLAT_TABLES];
-#endif /* PLAT_XLAT_TABLES_DYNAMIC */
-
-static xlat_ctx_t mm_shim_xlat_ctx = {
-
-	.pa_max_address = PLAT_PHY_ADDR_SPACE_SIZE - 1,
-	.va_max_address = PLAT_VIRT_ADDR_SPACE_SIZE - 1,
-
-	.mmap = mm_shim_mmap,
-	.mmap_num = MM_SHIM_MMAP_REGIONS,
-
-	.tables = mm_shim_xlat_tables,
-	.tables_num = MM_SHIM_MAX_XLAT_TABLES,
-#if PLAT_XLAT_TABLES_DYNAMIC
-	.tables_mapped_regions = mm_shim_xlat_tables_mapped_regions,
-#endif /* PLAT_XLAT_TABLES_DYNAMIC */
-
-	.base_table = mm_shim_base_xlat_table,
-	.base_table_entries = NUM_BASE_LEVEL_ENTRIES,
-
-	.max_pa = 0,
-	.max_va = 0,
-
-	.next_table = 0,
-
-	.base_level = XLAT_TABLE_LEVEL_BASE,
-
-	.initialized = 0
-};
+/*
+ * Allocate and initialise the translation context for MM shim.
+ * xxx:
+ * __section("mm_shim_xlat_table");
+ * VS
+ * __section("xlat_table") in REGISTER_XLAT_CONTEXT() macro
+ */
+REGISTER_XLAT_CONTEXT(mm_shim,
+		MM_SHIM_MMAP_REGIONS, MM_SHIM_MAX_XLAT_TABLES,
+		PLAT_VIRT_ADDR_SPACE_SIZE, PLAT_PHY_ADDR_SPACE_SIZE);
 
 /* Export a handle on the MM shim translation context */
-xlat_ctx_handle_t mm_shim_xlat_ctx_handle = &mm_shim_xlat_ctx;
+xlat_ctx_t *mm_shim_xlat_ctx_handle = &mm_shim_xlat_ctx;
 
 static unsigned long long calc_physical_addr_size_bits(
 					unsigned long long max_addr)

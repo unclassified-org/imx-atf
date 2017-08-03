@@ -15,6 +15,7 @@ BL31_SOURCES		+=	bl31/bl31_main.c				\
 				common/runtime_svc.c				\
 				plat/common/aarch64/platform_mp_stack.S		\
 				services/spd/mmd/mm_shim_exceptions.S		\
+				services/spd/mmd/mm_shim_setup.c		\
 				services/spd/mmd/mm_shim_xlat_tables.c		\
 				services/std_svc/std_svc_setup.c		\
 				${PSCI_LIB_SOURCES}

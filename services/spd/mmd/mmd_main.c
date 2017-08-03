@@ -40,6 +40,7 @@
 #include <mm_svc.h>
 #include <xlat_tables_v2.h>
 #include "mmd_private.h"
+#include "mm_shim.h"
 
 /*******************************************************************************
  * MM Payload state
