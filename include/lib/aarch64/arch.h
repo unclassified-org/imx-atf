@@ -160,10 +160,12 @@
 #define SCTLR_SA_BIT		(U(1) << 3)
 #define SCTLR_CP15BEN_BIT	(U(1) << 5)
 #define SCTLR_I_BIT		(U(1) << 12)
+#define SCTLR_UCT_BIT		(U(1) << 15)
 #define SCTLR_NTWI_BIT		(U(1) << 16)
 #define SCTLR_NTWE_BIT		(U(1) << 18)
 #define SCTLR_WXN_BIT		(U(1) << 19)
 #define SCTLR_EE_BIT		(U(1) << 25)
+#define SCTLR_UCI_BIT		(U(1) << 26)
 #define SCTLR_RESET_VAL		SCTLR_EL3_RES1
 
 /* CPACR_El1 definitions */

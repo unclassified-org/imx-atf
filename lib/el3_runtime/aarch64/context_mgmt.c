@@ -138,10 +138,29 @@ static void cm_init_context_common(cpu_context_t *ctx, const entry_point_info_t 
 	 *
 	 * SCTLR.EE: Endianness is taken from the entrypoint attributes.
 	 *
-	 * SCTLR.M, SCTLR.C and SCTLR.I: These fields must be zero (as
-	 *  required by PSCI specification)
+	 * SCTLR.M, SCTLR.C and SCTLR.I: These fields must be zero (as required
+	 *  by PSCI specification) if the target exception level is
+	 *  privileged. Else assume that the caller will take care of setting up
+	 *  the correct execution environment with caching and translations
+	 *  enabled at EL0.
 	 */
 	sctlr_elx = EP_GET_EE(ep->h.attr) ? SCTLR_EE_BIT : 0;
+
+	if (GET_EL(ep->spsr) == MODE_EL0) {
+		assert(security_state == SECURE);
+		sctlr_elx |= SCTLR_M_BIT | SCTLR_C_BIT | SCTLR_I_BIT;
+
+		/* Allow user-space to perform cache maintenance */
+		if (EP_GET_UCME(ep->h.attr))
+			sctlr_elx |= SCTLR_UCI_BIT | SCTLR_UCT_BIT;
+
+		/* Allow user-space to access FP/SIMD registers */
+		if (EP_GET_UFPE(ep->h.attr))
+			write_ctx_reg(get_sysregs_ctx(ctx),
+				      CTX_CPACR_EL1,
+				      CPACR_EL1_FPEN(CPACR_EL1_FP_TRAP_NONE));
+	}
+
 	if (GET_RW(ep->spsr) == MODE_RW_64)
 		sctlr_elx |= SCTLR_EL1_RES1;
 	else {
