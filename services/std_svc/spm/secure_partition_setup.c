@@ -54,17 +54,19 @@ void secure_partition_setup(void)
 	/*
 	 * Setup translation tables.
 	 */
+	mmap_region_t sel1_exception_vectors =
+		MAP_REGION_GRANULARITY(SECURE_PARTITION_EXCEPTIONS_BASE,
+				SECURE_PARTITION_EXCEPTIONS_BASE,
+				SECURE_PARTITION_EXCEPTIONS_SIZE,
+				MT_CODE | MT_SECURE,
+				SECURE_PARTITION_EXCEPTIONS_SIZE);
 	mmap_add_region_ctx(secure_partition_xlat_ctx_handle,
-			SECURE_PARTITION_EXCEPTIONS_BASE,
-			SECURE_PARTITION_EXCEPTIONS_BASE,
-			SECURE_PARTITION_EXCEPTIONS_SIZE,
-			MT_CODE | MT_SECURE,
-			SECURE_PARTITION_EXCEPTIONS_SIZE);
+			&sel1_exception_vectors);
 
 	mmap_add_ctx(secure_partition_xlat_ctx_handle,
 		     plat_arm_get_secure_partition_mmap(NULL));
 
-	init_xlat_tables_ctx(1, secure_partition_xlat_ctx_handle);
+	init_xlat_tables_ctx(secure_partition_xlat_ctx_handle);
 
 	VERBOSE("S-EL1/S-EL0 context setup end.\n");
 }

@@ -38,55 +38,20 @@
 #include <types.h>
 #include <utils.h>
 #include <xlat_tables_v2.h>
-#include "../../../lib/xlat_tables_v2/aarch64/xlat_tables_arch.h"
-#include "../../../lib/xlat_tables_v2/xlat_tables_private.h"
+
 #include "secure_partition_private.h"
 
-static mmap_region_t secure_partition_mmap[SECURE_PARTITION_MMAP_REGIONS + 1];
-
-static uint64_t
-secure_partition_xlat_tables[SECURE_PARTITION_MAX_XLAT_TABLES][XLAT_TABLE_ENTRIES]
-__aligned(XLAT_TABLE_SIZE)
-__section("secure_partition_xlat_table");
-
-static uint64_t secure_partition_base_xlat_table[NUM_BASE_LEVEL_ENTRIES]
-__aligned(NUM_BASE_LEVEL_ENTRIES * sizeof(uint64_t))
-__section("secure_partition_xlat_table_base");
-
-#if PLAT_XLAT_TABLES_DYNAMIC
-static int
-secure_partition_xlat_tables_mapped_regions[SECURE_PARTITION_XLAT_TABLES];
-#endif /* PLAT_XLAT_TABLES_DYNAMIC */
-
-static xlat_ctx_t secure_partition_xlat_ctx = {
-
-	.pa_max_address = PLAT_PHY_ADDR_SPACE_SIZE - 1,
-	.va_max_address = PLAT_VIRT_ADDR_SPACE_SIZE - 1,
-
-	.mmap = secure_partition_mmap,
-	.mmap_num = SECURE_PARTITION_MMAP_REGIONS,
-
-	.tables = secure_partition_xlat_tables,
-	.tables_num = SECURE_PARTITION_MAX_XLAT_TABLES,
-#if PLAT_XLAT_TABLES_DYNAMIC
-	.tables_mapped_regions = secure_partition_xlat_tables_mapped_regions,
-#endif /* PLAT_XLAT_TABLES_DYNAMIC */
-
-	.base_table = secure_partition_base_xlat_table,
-	.base_table_entries = NUM_BASE_LEVEL_ENTRIES,
-
-	.max_pa = 0,
-	.max_va = 0,
-
-	.next_table = 0,
-
-	.base_level = XLAT_TABLE_LEVEL_BASE,
-
-	.initialized = 0
-};
+/*
+ * Allocate and initialise the translation context for the secure partition.
+ */
+REGISTER_XLAT_CONTEXT_EL(secure_partition,
+			SECURE_PARTITION_MMAP_REGIONS,
+			SECURE_PARTITION_MAX_XLAT_TABLES,
+			PLAT_VIRT_ADDR_SPACE_SIZE, PLAT_PHY_ADDR_SPACE_SIZE,
+			1);
 
 /* Export a handle on the secure partition translation context */
-xlat_ctx_handle_t secure_partition_xlat_ctx_handle = &secure_partition_xlat_ctx;
+xlat_ctx_t *secure_partition_xlat_ctx_handle = &secure_partition_xlat_ctx;
 
 static unsigned long long calc_physical_addr_size_bits(
 					unsigned long long max_addr)

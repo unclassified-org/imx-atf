@@ -31,8 +31,6 @@
 #ifndef __SECURE_PARTITION_PRIVATE_H__
 #define __SECURE_PARTITION_PRIVATE_H__
 
-#include <xlat_tables_v2.h>
-
 /* Assembly source */
 extern uintptr_t secure_partition_exceptions;
 

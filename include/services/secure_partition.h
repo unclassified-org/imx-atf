@@ -32,7 +32,7 @@
 #define __SECURE_PARTITION_H__
 
 /* Handle on the Secure partition translation context */
-extern xlat_ctx_handle_t secure_partition_xlat_ctx_handle;
+extern xlat_ctx_t *secure_partition_xlat_ctx_handle;
 
 /* Linker symbols */
 extern uintptr_t __SECURE_PARTITION_XLAT_TABLES_START__;

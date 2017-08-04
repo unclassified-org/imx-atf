@@ -211,6 +211,13 @@ SECTIONS
      * the .bss section and eliminates the unecessary zero init
      */
     xlat_table (NOLOAD) : {
+#if SPM
+        __SECURE_PARTITION_XLAT_TABLES_START__ = .;
+        *secure_partition*.o(xlat_table)
+        /* Make sure that the rest of the page is empty. */
+        . = NEXT(4096);
+        __SECURE_PARTITION_XLAT_TABLES_END__ = .;
+#endif
         *(xlat_table)
     } >RAM
 
@@ -246,18 +253,6 @@ SECTIONS
      * image.
      */
     __RW_END__ = .;
-
-#if SPM
-    secure_partition_xlat_table (NOLOAD) : ALIGN(4096){
-        __SECURE_PARTITION_XLAT_TABLES_START__ = .;
-        *(secure_partition_xlat_table)
-        *(secure_partition_xlat_table_base)
-        /* Make sure that the rest of the page is empty. */
-        . = NEXT(4096);
-        __SECURE_PARTITION_XLAT_TABLES_END__ = .;
-    } >RAM
-#endif
-
     __BL31_END__ = .;
 
     __BSS_SIZE__ = SIZEOF(.bss);
