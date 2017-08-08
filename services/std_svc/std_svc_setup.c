@@ -7,9 +7,6 @@
 #include <assert.h>
 #include <cpu_data.h>
 #include <debug.h>
-#if !SPM
-#include <mm_svc.h>
-#endif
 #include <pmf.h>
 #include <psci.h>
 #include <runtime_instr.h>
@@ -48,8 +45,6 @@ static int32_t std_svc_setup(void)
 
 #if SPM
 	return spm_setup();
-#else
-	return mmd_setup();
 #endif
 }
 
@@ -105,15 +100,6 @@ uintptr_t std_svc_smc_handler(uint32_t smc_fid,
 	 */
 	if (is_spm_fid(smc_fid)) {
 		return spm_smc_handler(smc_fid, x1, x2, x3, x4, cookie,
-				       handle, flags);
-	}
-#else
-	/*
-	 * Dispatch MM calls to MMD SMC handler and return its return
-	 * value
-	 */
-	if (is_mm_fid(smc_fid)) {
-		return mmd_smc_handler(smc_fid, x1, x2, x3, x4, cookie,
 				       handle, flags);
 	}
 #endif
