@@ -44,13 +44,27 @@ endif
 # SPM sources
 
 
-SPM_SOURCES		:=	$(addprefix services/std_svc/spm/,	\
-				spm_main.c				\
-				spm_pwr_mgmt.c				\
-				${ARCH}/spm_helpers.S			\
-				secure_partition_setup.c		\
-				secure_partition_xlat_tables.c		\
-				${ARCH}/secure_partition_exceptions.S)
+SPM_SOURCES	:=	$(addprefix services/std_svc/spm/,	\
+			spm_main.c				\
+			spm_pwr_mgmt.c				\
+			${ARCH}/spm_helpers.S			\
+			secure_partition_setup.c		\
+			secure_partition_xlat_tables.c		\
+			${ARCH}/secure_partition_exceptions.S)
+
 
 # Let the top-level Makefile know that we intend to include a BL32 image
 NEED_BL32		:=	yes
+
+ifneq (,${SEC_PART})
+        ifneq (,${BL32})
+                $(error "Prebuilt Secure Partition cannot be specified in option BL32 at the same time as building a Secure Partition from sources (SEC_PART option)")
+        endif
+
+        # Secure Partition image sources
+        SEC_PART_MAKE := $(wildcard bl32/${SEC_PART}/${SEC_PART}.mk)
+        ifeq (${SEC_PART_MAKE},)
+	        $(error Error: No bl32/${SEC_PART}/${SEC_PART}.mk located)
+        endif
+        include bl32/${SEC_PART}/${SEC_PART}.mk
+endif

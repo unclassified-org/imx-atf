@@ -113,6 +113,7 @@ const mmap_region_t plat_arm_mmap[] = {
 };
 
 #if SPM && defined(IMAGE_BL31)
+#if !defined(CACTUS)
 const mmap_region_t plat_arm_secure_partition_mmap[] = {
 	V2M_MAP_IOFPGA, /* for the UART */
 	SECURE_PARTITION_IMAGE_MMAP,
@@ -121,6 +122,12 @@ const mmap_region_t plat_arm_secure_partition_mmap[] = {
 	SECURE_PARTITION_RW_MMAP,
 	{0}
 };
+#else
+/*
+ * If using Cactus, its mappings are provided in file
+ * bl32/cactus/cactus_mappings.c.
+ */
+#endif
 #endif
 #endif
 #ifdef IMAGE_BL32
