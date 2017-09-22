@@ -20,6 +20,9 @@ void fvp_interconnect_init(void);
 void fvp_interconnect_enable(void);
 void fvp_interconnect_disable(void);
 
+/* FVP exception setup */
+void fvp_exception_init(void);
+
 extern const interrupt_prop_t fvp_interrupts[];
 extern const size_t fvp_interrupts_num;
 

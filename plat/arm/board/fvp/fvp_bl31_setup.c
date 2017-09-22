@@ -41,3 +41,12 @@ void bl31_early_platform_setup(bl31_params_t *from_bl2,
 	if (arm_config.flags & ARM_CONFIG_FVP_HAS_SMMUV3)
 		smmuv3_init(PLAT_FVP_SMMUV3_BASE);
 }
+
+void bl31_platform_setup(void)
+{
+	/* Common ARM BL31 platform init */
+	arm_bl31_platform_setup();
+
+	/* Initialize FVP exceptions */
+	fvp_exception_init();
+}
