@@ -25,6 +25,7 @@
 #pragma weak plat_ic_is_ppi
 #pragma weak plat_ic_is_sgi
 #pragma weak plat_ic_raise_el3_sgi
+#pragma weak plat_ic_get_interrupt_active
 
 /*
  * This function returns the highest priority pending interrupt at
@@ -165,4 +166,9 @@ void plat_ic_raise_el3_sgi(int sgi_num, unsigned long long target)
 #else
 	assert(0);
 #endif
+}
+
+unsigned int plat_ic_get_interrupt_active(unsigned int id)
+{
+	return gicv2_get_interrupt_active(id);
 }

@@ -80,3 +80,18 @@ of the target PE.
 In case of ARM standard platforms using GIC, the implementation of the API
 writes to appropriate *SGI Register* in order to raise the EL3 SGI, along with
 necessary barriers.
+
+Function: unsigned int plat_ic_get_interrupt_active(unsigned int id); [optional]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Argument : int
+    Return   : int
+
+This API should return the *active* status of the interrupt ID specified by the
+first parameter, ``id``.
+
+In case of ARM standard platforms using GIC, the implementation of the API reads
+the GIC *Set Active Register* to read and return the active status of the
+interrupt.

@@ -308,3 +308,16 @@ int gicv2_raise_sgi(int sgi_num, int proc_num)
 
 	return 0;
 }
+
+/*******************************************************************************
+ * This function returns the active status of the interrupt (either because the
+ * state is active, or active and pending).
+ ******************************************************************************/
+unsigned int gicv2_get_interrupt_active(unsigned int id)
+{
+	assert(driver_data);
+	assert(driver_data->gicd_base);
+	assert(id <= MAX_SPI_ID);
+
+	return gicd_get_isactiver(driver_data->gicd_base, id);
+}

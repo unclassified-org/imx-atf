@@ -80,6 +80,7 @@
 #define GICR_IGROUPR0		(GICR_SGIBASE_OFFSET + 0x80)
 #define GICR_ISENABLER0		(GICR_SGIBASE_OFFSET + 0x100)
 #define GICR_ICENABLER0		(GICR_SGIBASE_OFFSET + 0x180)
+#define GICR_ISACTIVER0		(GICR_SGIBASE_OFFSET + 0x300)
 #define GICR_IPRIORITYR		(GICR_SGIBASE_OFFSET + 0x400)
 #define GICR_ICFGR0		(GICR_SGIBASE_OFFSET + 0xc00)
 #define GICR_ICFGR1		(GICR_SGIBASE_OFFSET + 0xc04)
@@ -266,6 +267,7 @@ unsigned int gicv3_get_interrupt_type(unsigned int id,
 					  unsigned int proc_num);
 unsigned int gicv3_get_running_priority(void);
 int gicv3_secure_g0_sgi(int sgi_num, unsigned long long target);
+unsigned int gicv3_get_interrupt_active(unsigned int id, unsigned int proc_num);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __GICV3_H__ */

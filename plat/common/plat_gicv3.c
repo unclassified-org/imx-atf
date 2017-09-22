@@ -31,6 +31,7 @@
 #pragma weak plat_ic_is_ppi
 #pragma weak plat_ic_is_sgi
 #pragma weak plat_ic_raise_el3_sgi
+#pragma weak plat_ic_get_interrupt_active
 
 CASSERT((INTR_TYPE_S_EL1 == INTR_GROUP1S) &&
 	(INTR_TYPE_NS == INTR_GROUP1NS) &&
@@ -191,6 +192,11 @@ void plat_ic_raise_el3_sgi(int sgi_num, unsigned long long target)
 	assert(plat_ic_get_interrupt_type(sgi_num) == INTR_TYPE_EL3);
 
 	gicv3_secure_g0_sgi(sgi_num, target);
+}
+
+unsigned int plat_ic_get_interrupt_active(unsigned int id)
+{
+	return gicv3_get_interrupt_active(id, plat_my_core_pos());
 }
 #endif
 #ifdef IMAGE_BL32
