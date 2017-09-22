@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2017, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -12,8 +12,10 @@
  ******************************************************************************/
 /* Constants to categorise interrupts */
 #define MIN_SGI_ID		0
+#define MIN_SEC_SGI_ID		8
 #define MIN_PPI_ID		16
 #define MIN_SPI_ID		32
+#define MAX_SPI_ID		1019
 
 /* Mask for the priority field common to all GIC interfaces */
 #define GIC_PRI_MASK			0xff
