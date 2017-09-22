@@ -298,6 +298,7 @@ int gicv2_raise_sgi(int sgi_num, int proc_num)
 	 * should be valid.
 	 */
 	assert(driver_data->target_masks);
+	assert(proc_num < 8);
 	assert(proc_num < driver_data->target_masks_num);
 
 	/* Don't raise SGI if the mask hasn't been populated */
