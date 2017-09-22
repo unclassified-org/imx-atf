@@ -83,6 +83,8 @@
 #define GICR_IGROUPR0		(GICR_SGIBASE_OFFSET + 0x80)
 #define GICR_ISENABLER0		(GICR_SGIBASE_OFFSET + 0x100)
 #define GICR_ICENABLER0		(GICR_SGIBASE_OFFSET + 0x180)
+#define GICR_ISPENDR0		(GICR_SGIBASE_OFFSET + 0x200)
+#define GICR_ICPENDR0		(GICR_SGIBASE_OFFSET + 0x280)
 #define GICR_ISACTIVER0		(GICR_SGIBASE_OFFSET + 0x300)
 #define GICR_IPRIORITYR		(GICR_SGIBASE_OFFSET + 0x400)
 #define GICR_ICFGR0		(GICR_SGIBASE_OFFSET + 0xc00)
@@ -279,6 +281,8 @@ void gicv3_set_interrupt_type(unsigned int id, unsigned int proc_num,
 		unsigned int group);
 int gicv3_set_spi_routing(unsigned int id, unsigned int irm,
 		unsigned long long mpidr);
+void gicv3_set_interrupt_pending(unsigned int id, unsigned int proc_num);
+void gicv3_clear_interrupt_pending(unsigned int id, unsigned int proc_num);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __GICV3_H__ */

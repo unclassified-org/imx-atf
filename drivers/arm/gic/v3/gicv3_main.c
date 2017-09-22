@@ -658,3 +658,45 @@ int gicv3_set_spi_routing(unsigned int id, unsigned int irm,
 
 	return 0;
 }
+
+/*******************************************************************************
+ * This function clears the pending status of an interrupt identified by id.
+ * The proc_num is used if the interrupt is SGI or PPI, and programs the
+ * corresponding Redistributor interface.
+ ******************************************************************************/
+void gicv3_clear_interrupt_pending(unsigned int id, unsigned int proc_num)
+{
+	assert(gicv3_driver_data);
+	assert(gicv3_driver_data->gicd_base);
+	assert(proc_num < gicv3_driver_data->rdistif_num);
+	assert(gicv3_driver_data->rdistif_base_addrs);
+
+	if (id < MIN_SPI_ID) {
+		/* For SGIs and PPIs */
+		gicr_set_icpendr0(gicv3_driver_data->rdistif_base_addrs[proc_num],
+				id);
+	} else {
+		gicd_set_icpendr(gicv3_driver_data->gicd_base, id);
+	}
+}
+
+/*******************************************************************************
+ * This function sets the pending status of an interrupt identified by id.
+ * The proc_num is used if the interrupt is SGI or PPI and programs the
+ * corresponding Redistributor interface.
+ ******************************************************************************/
+void gicv3_set_interrupt_pending(unsigned int id, unsigned int proc_num)
+{
+	assert(gicv3_driver_data);
+	assert(gicv3_driver_data->gicd_base);
+	assert(proc_num < gicv3_driver_data->rdistif_num);
+	assert(gicv3_driver_data->rdistif_base_addrs);
+
+	if (id < MIN_SPI_ID) {
+		/* For SGIs and PPIs */
+		gicr_set_ispendr0(gicv3_driver_data->rdistif_base_addrs[proc_num],
+				id);
+	} else {
+		gicd_set_ispendr(gicv3_driver_data->gicd_base, id);
+	}
+}

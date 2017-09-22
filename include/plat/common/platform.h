@@ -85,6 +85,8 @@ void plat_ic_set_interrupt_type(unsigned int id, unsigned int type);
 void plat_ic_set_interrupt_priority(unsigned int id, unsigned int priority);
 int plat_ic_set_spi_routing(unsigned int id, unsigned int routing_mode,
 		unsigned long long mpidr);
+void plat_ic_set_interrupt_pending(unsigned int id);
+void plat_ic_clear_interrupt_pending(unsigned int id);
 
 /*******************************************************************************
  * Optional common functions (may be overridden)
