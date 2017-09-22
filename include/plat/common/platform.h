@@ -80,6 +80,7 @@ void plat_ic_raise_el3_sgi(int sgi_num, unsigned long long target);
 unsigned int plat_ic_get_interrupt_active(unsigned int id);
 void plat_ic_disable_interrupt(unsigned int id);
 void plat_ic_enable_interrupt(unsigned int id);
+void plat_ic_set_interrupt_priority(unsigned int id, unsigned int priority);
 
 /*******************************************************************************
  * Optional common functions (may be overridden)

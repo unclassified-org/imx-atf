@@ -123,3 +123,18 @@ This API should disable the interrupt ID specified by the first parameter,
 
 In case of ARM standard platforms using GIC, the implementation of the API
 writes to GIC *Clear Enable Register* to disable the interrupt.
+
+Function: void plat_ic_set_interrupt_priority(unsigned int id, unsigned int priority); [optional]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Argument : int
+    Argument : int
+    Return   : void
+
+This API should set the priority of the interrupt specified by first parameter
+``id`` to the value set by the second parameter ``priority``.
+
+In case of ARM standard platforms using GIC, the implementation of the API
+writes to GIC *Priority Register* set interrupt priority.

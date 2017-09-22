@@ -270,6 +270,8 @@ int gicv3_secure_g0_sgi(int sgi_num, unsigned long long target);
 unsigned int gicv3_get_interrupt_active(unsigned int id, unsigned int proc_num);
 void gicv3_enable_interrupt(unsigned int id, unsigned int proc_num);
 void gicv3_disable_interrupt(unsigned int id, unsigned int proc_num);
+void gicv3_set_interrupt_priority(unsigned int id, unsigned int proc_num,
+		unsigned int priority);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __GICV3_H__ */
