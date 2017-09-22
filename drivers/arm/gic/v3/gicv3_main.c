@@ -700,3 +700,17 @@ void gicv3_set_interrupt_pending(unsigned int id, unsigned int proc_num)
 		gicd_set_ispendr(gicv3_driver_data->gicd_base, id);
 	}
 }
+
+/*******************************************************************************
+ * This function sets the PMR register with the supplied value. Returns the PMR
+ * value before setting the new one.
+ ******************************************************************************/
+unsigned int gicv3_set_pmr(unsigned int mask)
+{
+	unsigned int old_mask;
+
+	old_mask = read_icc_pmr_el1();
+	write_icc_pmr_el1(mask);
+
+	return old_mask;
+}

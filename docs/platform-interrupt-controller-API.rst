@@ -260,3 +260,19 @@ parameter ``id``.
 In case of ARM standard platforms using GIC, the implementation of the API
 writes to the GIC *Clear Pending Register* to clear the interrupt pending
 status.
+
+Function: unsigned int plat_ic_set_priority_mask(unsigned int id); [optional]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Argument : int
+    Return   : int
+
+This API should set the priority mask (first parameter) in the interrupt
+controller such that only interrupts of higher piority than the supplied one may
+be signalled to the PE. The API should return the current priority value that
+it's overwriting.
+
+In case of ARM standard platforms using GIC, the implementation of the API
+writes to the GIC *Priority Mask Register*, and returns its previous value.

@@ -455,3 +455,20 @@ void gicv2_set_interrupt_pending(unsigned int id)
 
 	gicd_set_ispendr(driver_data->gicd_base, id);
 }
+
+/*******************************************************************************
+ * This function sets the PMR register with the supplied value. Returns the PMR
+ * value before setting the new one.
+ ******************************************************************************/
+unsigned int gicv2_set_pmr(unsigned int mask)
+{
+	unsigned int old_mask;
+
+	assert(driver_data);
+	assert(driver_data->gicc_base);
+
+	old_mask = gicc_read_pmr(driver_data->gicc_base);
+	gicc_write_pmr(driver_data->gicc_base, mask);
+
+	return old_mask;
+}

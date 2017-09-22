@@ -171,6 +171,7 @@ void gicv2_set_interrupt_type(unsigned int id, unsigned int type);
 int gicv2_set_spi_routing(unsigned int id, int proc_num);
 void gicv2_set_interrupt_pending(unsigned int id);
 void gicv2_clear_interrupt_pending(unsigned int id);
+unsigned int gicv2_set_pmr(unsigned int mask);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __GICV2_H__ */
