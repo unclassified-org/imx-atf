@@ -12,6 +12,7 @@
 #include <console.h>
 #include <context_mgmt.h>
 #include <debug.h>
+#include <exception_mgmt.h>
 #include <platform.h>
 #include <pmf.h>
 #include <runtime_instr.h>
@@ -82,6 +83,11 @@ void bl31_main(void)
 	/* Initialize the runtime services e.g. psci. */
 	INFO("BL31: Initializing runtime services\n");
 	runtime_svc_init();
+
+	/* Initialize exception management */
+	INFO("BL31: Initializing exception management\n");
+	if (exception_mgmt_init() != 0)
+		panic();
 
 	/*
 	 * All the cold boot actions on the primary cpu are done. We now need to
