@@ -95,3 +95,31 @@ first parameter, ``id``.
 In case of ARM standard platforms using GIC, the implementation of the API reads
 the GIC *Set Active Register* to read and return the active status of the
 interrupt.
+
+Function: void plat_ic_enable_interrupt(unsigned int id); [optional]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Argument : int
+    Return   : void
+
+This API should enable the interrupt ID specified by the first parameter,
+``id``. PEs in the system are expected to receive only enabled interrupts.
+
+In case of ARM standard platforms using GIC, the implementation of the API
+writes to GIC *Set Enable Register* to enable the interrupt.
+
+Function: void plat_ic_disable_interrupt(unsigned int id); [optional]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Argument : int
+    Return   : void
+
+This API should disable the interrupt ID specified by the first parameter,
+``id``. PEs in the system are not expected to receive disabled interrupts.
+
+In case of ARM standard platforms using GIC, the implementation of the API
+writes to GIC *Clear Enable Register* to disable the interrupt.

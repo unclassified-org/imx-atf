@@ -321,3 +321,27 @@ unsigned int gicv2_get_interrupt_active(unsigned int id)
 
 	return gicd_get_isactiver(driver_data->gicd_base, id);
 }
+
+/*******************************************************************************
+ * This function enables the interrupt identified by id.
+ ******************************************************************************/
+void gicv2_enable_interrupt(unsigned int id)
+{
+	assert(driver_data);
+	assert(driver_data->gicd_base);
+	assert(id <= MAX_SPI_ID);
+
+	gicd_set_isenabler(driver_data->gicd_base, id);
+}
+
+/*******************************************************************************
+ * This function disables the interrupt identified by id.
+ ******************************************************************************/
+void gicv2_disable_interrupt(unsigned int id)
+{
+	assert(driver_data);
+	assert(driver_data->gicd_base);
+	assert(id <= MAX_SPI_ID);
+
+	gicd_set_icenabler(driver_data->gicd_base, id);
+}
