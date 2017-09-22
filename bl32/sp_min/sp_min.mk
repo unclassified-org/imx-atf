@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, ARM Limited and Contributors. All rights reserved.
+# Copyright (c) 2016-2017, ARM Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -17,6 +17,10 @@ BL32_SOURCES		+=	bl32/sp_min/sp_min_main.c		\
 				common/runtime_svc.c			\
 				services/std_svc/std_svc_setup.c	\
 				${PSCI_LIB_SOURCES}
+
+ifeq (${PLAT},fvp)
+BL32_SOURCES		+=	plat/arm/board/fvp/fvp_exc.c
+endif
 
 ifeq (${ENABLE_PMF}, 1)
 BL32_SOURCES		+=	lib/pmf/pmf_main.c

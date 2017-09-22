@@ -43,6 +43,7 @@ $(eval $(call add_define,FVP_INTERCONNECT_DRIVER))
 FVP_GICV3_SOURCES	:=	drivers/arm/gic/common/gic_common.c	\
 				drivers/arm/gic/v3/gicv3_main.c		\
 				drivers/arm/gic/v3/gicv3_helpers.c	\
+				plat/arm/board/fvp/fvp_gicv3.c		\
 				plat/common/plat_gicv3.c		\
 				plat/arm/common/arm_gicv3.c
 
@@ -138,6 +139,7 @@ BL31_SOURCES		+=	drivers/arm/smmu/smmu_v3.c			\
 				plat/arm/board/fvp/fvp_topology.c		\
 				plat/arm/board/fvp/aarch64/fvp_helpers.S	\
 				plat/arm/board/fvp/drivers/pwrc/fvp_pwrc.c	\
+				plat/arm/board/fvp/fvp_exc.c			\
 				${FVP_CPU_LIBS}					\
 				${FVP_GIC_SOURCES}				\
 				${FVP_INTERCONNECT_SOURCES}			\
