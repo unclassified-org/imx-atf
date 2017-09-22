@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <debug.h>
 #include <gic_common.h>
+#include <interrupt_mgmt.h>
 #include "../common/gic_common_private.h"
 #include "gicv3_private.h"
 
@@ -412,6 +413,61 @@ void gicv3_secure_spis_configure(uintptr_t gicd_base,
 }
 
 /*******************************************************************************
+ * Helper function to configure properties of secure SPIs
+ ******************************************************************************/
+unsigned int gicv3_secure_spis_configure_props(uintptr_t gicd_base,
+		const interrupt_prop_t *interrupt_props,
+		unsigned int interrupt_props_num)
+{
+	unsigned int i;
+	const interrupt_prop_t *prop_desc;
+	unsigned long long gic_affinity_val;
+	unsigned int ctlr_enable = 0;
+
+	/* Make sure there's a valid property array */
+	assert(interrupt_props_num ? (uintptr_t) interrupt_props : 1);
+
+	for (i = 0; i < interrupt_props_num; i++) {
+		prop_desc = &interrupt_props[i];
+
+		if (prop_desc->intr_num < MIN_SPI_ID)
+			continue;
+
+		/* Configure this interrupt as a secure interrupt */
+		gicd_clr_igroupr(gicd_base, prop_desc->intr_num);
+
+		/* Configure this interrupt as G0 or a G1S interrupt */
+		assert((prop_desc->intr_grp == INTR_GROUP0) ||
+				(prop_desc->intr_grp == INTR_GROUP1S));
+		if (prop_desc->intr_grp == INTR_GROUP1S) {
+			gicd_set_igrpmodr(gicd_base, prop_desc->intr_num);
+			ctlr_enable |= CTLR_ENABLE_G1S_BIT;
+		} else {
+			gicd_clr_igrpmodr(gicd_base, prop_desc->intr_num);
+			ctlr_enable |= CTLR_ENABLE_G0_BIT;
+		}
+
+		/* Set interrupt configuration */
+		gicd_set_icfgr(gicd_base, prop_desc->intr_num,
+				prop_desc->intr_cfg);
+
+		/* Set the priority of this interrupt */
+		gicd_set_ipriorityr(gicd_base, prop_desc->intr_num,
+				prop_desc->intr_pri);
+
+		/* Target SPIs to the primary CPU */
+		gic_affinity_val = gicd_irouter_val_from_mpidr(read_mpidr(), 0);
+		gicd_write_irouter(gicd_base, prop_desc->intr_num,
+				gic_affinity_val);
+
+		/* Enable this interrupt */
+		gicd_set_isenabler(gicd_base, prop_desc->intr_num);
+	}
+
+	return ctlr_enable;
+}
+
+/*******************************************************************************
  * Helper function to configure the default attributes of SPIs.
  ******************************************************************************/
 void gicv3_ppi_sgi_configure_defaults(uintptr_t gicr_base)
@@ -474,5 +530,54 @@ void gicv3_secure_ppi_sgi_configure(uintptr_t gicr_base,
 			/* Enable this interrupt */
 			gicr_set_isenabler0(gicr_base, irq_num);
 		}
+	}
+}
+
+/*******************************************************************************
+ * Helper function to configure properties of secure G0 and G1S PPIs and SGIs.
+ ******************************************************************************/
+void gicv3_secure_ppi_sgi_configure_props(uintptr_t gicr_base,
+		const interrupt_prop_t *interrupt_props,
+		unsigned int interrupt_props_num)
+{
+	unsigned int i;
+	const interrupt_prop_t *prop_desc;
+
+	/* Make sure there's a valid property array */
+	assert(interrupt_props_num ? (uintptr_t) interrupt_props : 1);
+
+	for (i = 0; i < interrupt_props_num; i++) {
+		prop_desc = &interrupt_props[i];
+
+		if (prop_desc->intr_num >= MIN_SPI_ID)
+			continue;
+
+		/* Configure this interrupt as a secure interrupt */
+		gicr_clr_igroupr0(gicr_base, prop_desc->intr_num);
+
+		/* Configure this interrupt as G0 or a G1S interrupt */
+		assert((prop_desc->intr_grp == INTR_GROUP0) ||
+				(prop_desc->intr_grp == INTR_GROUP1S));
+		if (prop_desc->intr_grp == INTR_GROUP1S)
+			gicr_set_igrpmodr0(gicr_base, prop_desc->intr_num);
+		else
+			gicr_clr_igrpmodr0(gicr_base, prop_desc->intr_num);
+
+		/* Set the priority of this interrupt */
+		gicr_set_ipriorityr(gicr_base, prop_desc->intr_num,
+				prop_desc->intr_pri);
+
+		/*
+		 * Set interrupt configuration for PPIs. Configuration for SGIs
+		 * are ignored.
+		 */
+		if ((prop_desc->intr_num >= MIN_PPI_ID) &&
+				(prop_desc->intr_num < MIN_SPI_ID)) {
+			gicr_set_icfgr1(gicr_base, prop_desc->intr_num,
+					prop_desc->intr_cfg);
+		}
+
+		/* Enable this interrupt */
+		gicr_set_isenabler0(gicr_base, prop_desc->intr_num);
 	}
 }

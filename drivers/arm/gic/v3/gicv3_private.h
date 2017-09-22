@@ -113,6 +113,12 @@ void gicv3_secure_ppi_sgi_configure(uintptr_t gicr_base,
 					unsigned int num_ints,
 					const unsigned int *sec_intr_list,
 					unsigned int int_grp);
+void gicv3_secure_ppi_sgi_configure_props(uintptr_t gicr_base,
+		const interrupt_prop_t *interrupt_props,
+		unsigned int interrupt_props_num);
+unsigned int gicv3_secure_spis_configure_props(uintptr_t gicd_base,
+		const interrupt_prop_t *interrupt_props,
+		unsigned int interrupt_props_num);
 void gicv3_rdistif_base_addrs_probe(uintptr_t *rdistif_base_addrs,
 					unsigned int rdistif_num,
 					uintptr_t gicr_base,

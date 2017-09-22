@@ -89,4 +89,30 @@
 	(GIC_HIGHEST_NS_PRIORITY << 16)	|	\
 	(GIC_HIGHEST_NS_PRIORITY << 24))
 
+/* TODO: Do we need target? */
+
+/* Permitted interrupt configurations */
+#define INTR_CFG_LEVEL		0
+#define INTR_CFG_EDGE		1
+
+#ifndef __ASSEMBLY__
+
+/* Create an interrupt property descriptor from various interrupt properties */
+#define INTR_PROP_DESC(num, pri, grp, cfg) \
+	{ \
+		.intr_num = num, \
+		.intr_pri = pri, \
+		.intr_grp = grp, \
+		.intr_cfg = cfg, \
+	}
+
+typedef struct interrupt_prop {
+	unsigned int intr_num:10;
+	unsigned int intr_pri:8;
+	unsigned int intr_grp:2;
+	unsigned int intr_cfg:2;
+} interrupt_prop_t;
+
+#endif /* __ASSEMBLY__ */
+
 #endif /* __GIC_COMMON_H__ */

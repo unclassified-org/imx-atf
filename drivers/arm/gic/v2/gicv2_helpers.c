@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <debug.h>
 #include <gic_common.h>
+#include <interrupt_mgmt.h>
 #include "../common/gic_common_private.h"
 #include "gicv2_private.h"
 
@@ -147,6 +148,46 @@ void gicv2_secure_spis_configure(uintptr_t gicd_base,
 }
 
 /*******************************************************************************
+ * Helper function to configure properties of secure G0 SPIs.
+ ******************************************************************************/
+void gicv2_secure_spis_configure_props(uintptr_t gicd_base,
+		const interrupt_prop_t *interrupt_props,
+		unsigned int interrupt_props_num)
+{
+	unsigned int i;
+	const interrupt_prop_t *prop_desc;
+
+	/* Make sure there's a valid property array */
+	assert(interrupt_props_num ? (uintptr_t) interrupt_props : 1);
+
+	for (i = 0; i < interrupt_props_num; i++) {
+		prop_desc = &interrupt_props[i];
+
+		if (prop_desc->intr_num < MIN_SPI_ID)
+			continue;
+
+		/* Configure this interrupt as a secure interrupt */
+		assert(prop_desc->intr_grp == GICV2_INTR_GROUP0);
+		gicd_clr_igroupr(gicd_base, prop_desc->intr_num);
+
+		/* Set the priority of this interrupt */
+		gicd_set_ipriorityr(gicd_base, prop_desc->intr_num,
+				prop_desc->intr_pri);
+
+		/* Target the secure interrupts to primary CPU */
+		gicd_set_itargetsr(gicd_base, prop_desc->intr_num,
+				gicv2_get_cpuif_id(gicd_base));
+
+		/* Set interrupt configuration */
+		gicd_set_icfgr(gicd_base, prop_desc->intr_num,
+				prop_desc->intr_cfg);
+
+		/* Enable this interrupt */
+		gicd_set_isenabler(gicd_base, prop_desc->intr_num);
+	}
+}
+
+/*******************************************************************************
  * Helper function to configure secure G0 SGIs and PPIs.
  ******************************************************************************/
 void gicv2_secure_ppi_sgi_setup(uintptr_t gicd_base,
@@ -187,6 +228,68 @@ void gicv2_secure_ppi_sgi_setup(uintptr_t gicd_base,
 	/*
 	 * Invert the bitmask to create a mask for non-secure PPIs and
 	 * SGIs. Program the GICD_IGROUPR0 with this bit mask.
+	 */
+	gicd_write_igroupr(gicd_base, 0, ~sec_ppi_sgi_mask);
+
+	/* Enable the Group 0 SGIs and PPIs */
+	gicd_write_isenabler(gicd_base, 0, sec_ppi_sgi_mask);
+}
+
+/*******************************************************************************
+ * Helper function to configure properties of secure G0 SGIs and PPIs.
+ ******************************************************************************/
+void gicv2_secure_ppi_sgi_setup_props(uintptr_t gicd_base,
+		const interrupt_prop_t *interrupt_props,
+		unsigned int interrupt_props_num)
+{
+	unsigned int i;
+	uint32_t sec_ppi_sgi_mask = 0;
+	const interrupt_prop_t *prop_desc;
+
+	/* Make sure there's a valid property array */
+	assert(interrupt_props_num ? (uintptr_t) interrupt_props : 1);
+
+	/*
+	 * Disable all SGIs (imp. def.)/PPIs before configuring them. This is a
+	 * more scalable approach as it avoids clearing the enable bits in the
+	 * GICD_CTLR.
+	 */
+	gicd_write_icenabler(gicd_base, 0, ~0);
+
+	/* Setup the default PPI/SGI priorities doing four at a time */
+	for (i = 0; i < MIN_SPI_ID; i += 4)
+		gicd_write_ipriorityr(gicd_base, i, GICD_IPRIORITYR_DEF_VAL);
+
+	for (i = 0; i < interrupt_props_num; i++) {
+		prop_desc = &interrupt_props[i];
+
+		if (prop_desc->intr_num >= MIN_SPI_ID)
+			continue;
+
+		/* Configure this interrupt as a secure interrupt */
+		assert(prop_desc->intr_grp == GICV2_INTR_GROUP0);
+
+		/*
+		 * Set interrupt configuration for PPIs. Configuration for SGIs
+		 * are ignored.
+		 */
+		if ((prop_desc->intr_num >= MIN_PPI_ID) &&
+				(prop_desc->intr_num < MIN_SPI_ID)) {
+			gicd_set_icfgr(gicd_base, prop_desc->intr_num,
+					prop_desc->intr_cfg);
+		}
+
+		/* We have an SGI or a PPI. They are Group0 at reset */
+		sec_ppi_sgi_mask |= BIT(prop_desc->intr_num);
+
+		/* Set the priority of this interrupt */
+		gicd_set_ipriorityr(gicd_base, prop_desc->intr_num,
+				prop_desc->intr_pri);
+	}
+
+	/*
+	 * Invert the bitmask to create a mask for non-secure PPIs and SGIs.
+	 * Program the GICD_IGROUPR0 with this bit mask.
 	 */
 	gicd_write_igroupr(gicd_base, 0, ~sec_ppi_sgi_mask);
 
