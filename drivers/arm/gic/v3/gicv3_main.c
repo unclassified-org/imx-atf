@@ -41,6 +41,7 @@ void gicv3_driver_init(const gicv3_driver_data_t *plat_driver_data)
 
 	assert(IS_IN_EL3());
 
+#if !ERROR_DEPRECATED
 	if (!plat_driver_data->interrupt_props) {
 		/* Interrupt properties array size must be 0 */
 		assert(plat_driver_data->interrupt_props_num == 0);
@@ -63,6 +64,9 @@ void gicv3_driver_init(const gicv3_driver_data_t *plat_driver_data)
 				plat_driver_data->g1s_interrupt_num :
 				plat_driver_data->g1s_interrupt_num == 0);
 	}
+#else
+	assert(plat_driver_data->interrupt_props);
+#endif
 
 	/* Check for system register support */
 #ifdef AARCH32
@@ -149,11 +153,14 @@ void gicv3_distif_init(void)
 	/* Set the default attribute of all SPIs */
 	gicv3_spis_configure_defaults(gicv3_driver_data->gicd_base);
 
+#if !ERROR_DEPRECATED
 	if (gicv3_driver_data->interrupt_props) {
+#endif
 		bitmap = gicv3_secure_spis_configure_props(
 				gicv3_driver_data->gicd_base,
 				gicv3_driver_data->interrupt_props,
 				gicv3_driver_data->interrupt_props_num);
+#if !ERROR_DEPRECATED
 	} else {
 		assert(gicv3_driver_data->g1s_interrupt_array ||
 				gicv3_driver_data->g0_interrupt_array);
@@ -176,6 +183,7 @@ void gicv3_distif_init(void)
 			bitmap |= CTLR_ENABLE_G0_BIT;
 		}
 	}
+#endif
 
 	/* Enable the secure SPIs now that they have been configured */
 	gicd_set_ctlr(gicv3_driver_data->gicd_base, bitmap, RWP_TRUE);
@@ -206,10 +214,13 @@ void gicv3_rdistif_init(unsigned int proc_num)
 	/* Set the default attribute of all SGIs and PPIs */
 	gicv3_ppi_sgi_configure_defaults(gicr_base);
 
+#if !ERROR_DEPRECATED
 	if (gicv3_driver_data->interrupt_props) {
+#endif
 		gicv3_secure_ppi_sgi_configure_props(gicr_base,
 				gicv3_driver_data->interrupt_props,
 				gicv3_driver_data->interrupt_props_num);
+#if !ERROR_DEPRECATED
 	} else {
 		assert(gicv3_driver_data->g1s_interrupt_array ||
 		       gicv3_driver_data->g0_interrupt_array);
@@ -230,6 +241,7 @@ void gicv3_rdistif_init(unsigned int proc_num)
 					INTR_GROUP0);
 		}
 	}
+#endif
 }
 
 /*******************************************************************************

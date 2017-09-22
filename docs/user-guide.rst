@@ -386,6 +386,8 @@ Common build options
    images will include support for Trusted Board Boot, but the FIP and FWU\_FIP
    will not include the corresponding certificates, causing a boot failure.
 
+   .. _gicv2_g0_for_el3:
+
 -  ``GICV2_G0_FOR_EL3``: Unlike GICv3, the GICv2 architecture doesn't have
    inherent support for specific EL3 type interrupts. Setting this build option
    to ``1`` assumes GICv2 *Group 0* interrupts are expected to target EL3, both

@@ -1182,6 +1182,13 @@ There are two ways to specify secure interrupt configuration:
          interrupts to be assigned to *Group 0*, and the ``g0_interrupt_num``
          member of the should be set to the number of interrupts in the array.
 
+      When the build flag ``GICV2_G0_FOR_EL3`` is set to ``0``, *Group 0*
+      interrupts are expected to be handled by Secure EL1. When set ``1``,
+      they're expected to be handled by EL3. See the `user guide`__ for  more
+      details.
+
+      .. __: `docs/user-guide.rst#gicv2_g0_for_el3`
+
    -  For the GICv3 driver, in ``gicv3_driver_data`` structure:
 
       -  The ``g0_interrupt_array`` member of the should point to the array of
@@ -1192,6 +1199,8 @@ There are two ways to specify secure interrupt configuration:
          interrupts to be assigned to *Group 1 Secure*, and the
          ``g1s_interrupt_num`` member of the should be set to the number of
          interrupts in the array.
+
+   Note that this scheme is deprecated.
 
 -  Array of secure interrupt properties: In this scheme, in both GICv2 and GICv3
    driver data strictures, the ``interrupt_props`` member points to an array of
@@ -1208,9 +1217,6 @@ There are two ways to specify secure interrupt configuration:
       ``INTR_TYPE_NS``),
 
    -  Interrupt configuration (either ``INTR_CFG_LEVEL`` or ``INTR_CFG_EDGE``).
-
-Platforms must choose only one of the two schemes to configure secure
-interrupts.
 
 CPU specific operations framework
 ---------------------------------

@@ -71,16 +71,20 @@ void gicv2_pcpu_distif_init(void)
 	assert(driver_data);
 	assert(driver_data->gicd_base);
 
+#if !ERROR_DEPRECATED
 	if (driver_data->interrupt_props) {
+#endif
 		gicv2_secure_ppi_sgi_setup_props(driver_data->gicd_base,
 				driver_data->interrupt_props,
 				driver_data->interrupt_props_num);
+#if !ERROR_DEPRECATED
 	} else {
 		assert(driver_data->g0_interrupt_array);
 		gicv2_secure_ppi_sgi_setup(driver_data->gicd_base,
 				driver_data->g0_interrupt_num,
 				driver_data->g0_interrupt_array);
 	}
+#endif
 }
 
 /*******************************************************************************
@@ -103,10 +107,13 @@ void gicv2_distif_init(void)
 	/* Set the default attribute of all SPIs */
 	gicv2_spis_configure_defaults(driver_data->gicd_base);
 
+#if !ERROR_DEPRECATED
 	if (driver_data->interrupt_props) {
+#endif
 		gicv2_secure_spis_configure_props(driver_data->gicd_base,
 				driver_data->interrupt_props,
 				driver_data->interrupt_props_num);
+#if !ERROR_DEPRECATED
 	} else {
 		assert(driver_data->g0_interrupt_array);
 
@@ -115,6 +122,7 @@ void gicv2_distif_init(void)
 				driver_data->g0_interrupt_num,
 				driver_data->g0_interrupt_array);
 	}
+#endif
 
 	/* Re-enable the secure SPIs now that they have been configured */
 	gicd_write_ctlr(driver_data->gicd_base, ctlr | CTLR_ENABLE_G0_BIT);
@@ -130,6 +138,7 @@ void gicv2_driver_init(const gicv2_driver_data_t *plat_driver_data)
 	assert(plat_driver_data->gicd_base);
 	assert(plat_driver_data->gicc_base);
 
+#if !ERROR_DEPRECATED
 	if (!plat_driver_data->interrupt_props) {
 		/* Interrupt properties array size must be 0 */
 		assert(plat_driver_data->interrupt_props_num == 0);
@@ -145,6 +154,9 @@ void gicv2_driver_init(const gicv2_driver_data_t *plat_driver_data)
 				plat_driver_data->g0_interrupt_num :
 				plat_driver_data->g0_interrupt_num == 0);
 	}
+#else
+	assert(plat_driver_data->interrupt_props);
+#endif
 
 	/* Ensure that this is a GICv2 system */
 	gic_version = gicd_read_pidr2(plat_driver_data->gicd_base);
