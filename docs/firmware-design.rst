@@ -2253,6 +2253,88 @@ should consider the trade-off between memory footprint and security.
 This build flag is disabled by default, minimising memory footprint. On ARM
 platforms, it is enabled.
 
+Publish and Subscribe Framework
+-------------------------------
+
+The Publish and Subscribe Framework allows EL3 components to define and publish
+events, to which other EL3 components can subscribe.
+
+The following macros are provided by the framework:
+
+-  ``DEFINE_PUBSUB_EVENT(event)``: Defines an event, and takes one argument, the
+   event name, which must be a valid C identifier. All calls to
+   ``DEFINE_PUBSUB_EVENT`` macro must be placed in the file ``pubsub_events.h``.
+
+-  ``PUBLISH_EVENT_ARG(event, arg)``: Publishes a defined event, by iterating
+   subscribed handlers and calling them in turn. The handlers will be passed the
+   parameter ``arg``. The macro returns ``NULL``. The expected use-case is to
+   broadcast an event.
+
+-  ``PUBLISH_EVENT_TO_RESOLVE_ARG(event, arg)``: Like ``PUBLISH_EVENT_ARG``,
+   this macro iterates through and calls subscribed handlers with the supplied
+   parameter, until one of them returns non-NULL value. This value is returned.
+   The expected use-case is to broadcast an event with the intention of one of
+   the subscribed handlers returning a resolution.
+
+-  ``PUBLISH_EVENT(event)``: Like ``PUBLISH_EVENT_ARG``, except that the value
+   ``NULL`` is passed to subscribed handlers.
+
+-  ``PUBLISH_EVENT_TO_RESOLVE(event, arg)``: Like
+   ``PUBLISH_EVENT_TO_RESOLVE_ARG``, except that the value ``NULL`` is passed
+   to subscribed handlers.
+
+-  ``SUBSCRIBE_TO_EVENT(event, handler)``: Registers the ``handler`` to
+   subscribe to ``event``. The handler will be executed whenever the ``event``
+   is published.
+
+-  ``for_each_subscriber(event, subscriber)``: Iterates through all handlers
+   subscribed for ``event``. ``subscriber`` must be a local variable of type
+   ``pubsub_cb_t *``, and will point to each subscribed handler in turn during
+   iteration. This macro can be used for those patterns that one of the
+   ``PUBLISH_EVENT_*()`` macros don't cover.
+
+Publishing an event that wasn't defined using ``DEFINE_PUBSUB_EVENT`` will
+result in build error. Subscribing to an undefined event however won't.
+
+Subscribed handlers must be of type ``pubsub_cb_t``, with following function
+signature:
+
+::
+
+   typedef void* (*pubsub_cb_t)(const void *arg);
+
+There may be arbitrary number of handlers registered to the same event. The
+order in which subscribed handlers are notified when that event is published is
+not defined. Subscribed handlers may be executed in any order; handlers should
+not assume any relative ordering amongst them.
+
+Publishing an event on a PE will result subscribed handlers to execute on that
+PE only; it won't cause handlers to execute on a different PE.
+
+Publish and Subscribe Example
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For example, a publisher that wants to publish event ``foo`` would:
+
+-  Define the event ``foo`` using the macro ``DEFINE_PUBSUB_EVENT(foo)`` in the
+   file ``pubsub_events.h``.
+
+-  Depending on the nature of event, use one of ``PUBLISH_EVENT_*()`` macros to
+   publish the event at the appropriate path and time of execution.
+
+A subscriber that wants to subscribe to event ``foo`` published above would
+implement:
+
+::
+
+   int foo_handler(const void *arg)
+   {
+           /* Do handling */
+           return 0;
+   }
+
+   SUBSCRIBE_TO_EVENT(foo, foo_handler);
+
 Performance Measurement Framework
 ---------------------------------
 

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <pubsub.h>
 #include <platform_def.h>
 
 OUTPUT_FORMAT(PLATFORM_LINKER_FORMAT)
@@ -62,6 +63,10 @@ SECTIONS
         KEEP(*(cpu_ops))
         __CPU_OPS_END__ = .;
 
+        /* Place pubsub sections for events */
+        . = ALIGN(8);
+#include <pubsub_events.h>
+
         . = NEXT(4096);
         __RODATA_END__ = .;
     } >RAM
@@ -94,6 +99,10 @@ SECTIONS
         __CPU_OPS_START__ = .;
         KEEP(*(cpu_ops))
         __CPU_OPS_END__ = .;
+
+        /* Place pubsub sections for events */
+        . = ALIGN(8);
+#include <pubsub_events.h>
 
         *(.vectors)
         __RO_END_UNALIGNED__ = .;
