@@ -881,6 +881,11 @@ services ``handle()`` function.
 On return from the handler the result registers are populated in X0-X3 before
 restoring the stack and CPU state and returning from the original SMC.
 
+Exception Handling Framework
+----------------------------
+
+Please refer to the `Exception Handling Framework`_ document.
+
 Power State Coordination Interface
 ----------------------------------
 
@@ -1217,6 +1222,9 @@ There are two ways to specify secure interrupt configuration:
       ``INTR_TYPE_NS``),
 
    -  Interrupt configuration (either ``INTR_CFG_LEVEL`` or ``INTR_CFG_EDGE``).
+
+   Note that, with `Exception Handling Framework`_, the platform must follow
+   this scheme to configure secure interrupts.
 
 CPU specific operations framework
 ---------------------------------
@@ -2607,5 +2615,6 @@ References
 .. _SMC Calling Convention PDD: http://infocenter.arm.com/help/topic/com.arm.doc.den0028b/ARM_DEN0028B_SMC_Calling_Convention.pdf
 .. _ARM Trusted Firmware Interrupt Management Design guide: ./interrupt-framework-design.rst
 .. _Xlat_tables design: xlat-tables-lib-v2-design.rst
+.. _Exception Handling Framework: exception-handling.rst
 
 .. |Image 1| image:: diagrams/rt-svc-descs-layout.png?raw=true
