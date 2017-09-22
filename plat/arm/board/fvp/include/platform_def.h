@@ -10,6 +10,7 @@
 #include <arm_def.h>
 #include <board_arm_def.h>
 #include <common_def.h>
+#include <gic_common.h>
 #include <tzc400.h>
 #include <utils.h>
 #include <v2m_def.h>
@@ -134,6 +135,13 @@
 					FVP_IRQ_TZ_WDOG,		\
 					FVP_IRQ_SEC_SYS_TIMER
 
+#define PLAT_ARM_G1S_IRQ_PROPS(pri, grp) \
+	ARM_G1S_IRQ_PROPS(pri, grp), \
+	INTR_PROP_DESC(FVP_IRQ_TZ_WDOG, pri, grp, INTR_CFG_EDGE), \
+	INTR_PROP_DESC(FVP_IRQ_SEC_SYS_TIMER, pri, grp, INTR_CFG_EDGE)
+
 #define PLAT_ARM_G0_IRQS		ARM_G0_IRQS
+
+#define PLAT_ARM_G0_IRQ_PROPS(pri, grp)	ARM_G0_IRQ_PROPS(pri, grp)
 
 #endif /* __PLATFORM_DEF_H__ */

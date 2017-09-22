@@ -8,6 +8,7 @@
 
 #include <arch.h>
 #include <common_def.h>
+#include <gic_common.h>
 #include <platform_def.h>
 #include <tbbr_img_def.h>
 #include <utils_def.h>
@@ -164,8 +165,21 @@
 					ARM_IRQ_SEC_SGI_5,		\
 					ARM_IRQ_SEC_SGI_7
 
+#define ARM_G1S_IRQ_PROPS(pri, grp) \
+	INTR_PROP_DESC(ARM_IRQ_SEC_PHY_TIMER, pri, grp, INTR_CFG_LEVEL), \
+	INTR_PROP_DESC(ARM_IRQ_SEC_SGI_1, pri, grp, INTR_CFG_EDGE), \
+	INTR_PROP_DESC(ARM_IRQ_SEC_SGI_2, pri, grp, INTR_CFG_EDGE), \
+	INTR_PROP_DESC(ARM_IRQ_SEC_SGI_3, pri, grp, INTR_CFG_EDGE), \
+	INTR_PROP_DESC(ARM_IRQ_SEC_SGI_4, pri, grp, INTR_CFG_EDGE), \
+	INTR_PROP_DESC(ARM_IRQ_SEC_SGI_5, pri, grp, INTR_CFG_EDGE), \
+	INTR_PROP_DESC(ARM_IRQ_SEC_SGI_7, pri, grp, INTR_CFG_EDGE)
+
 #define ARM_G0_IRQS			ARM_IRQ_SEC_SGI_0,		\
 					ARM_IRQ_SEC_SGI_6
+
+#define ARM_G0_IRQ_PROPS(pri, grp) \
+	INTR_PROP_DESC(ARM_IRQ_SEC_SGI_0, pri, grp, INTR_CFG_EDGE), \
+	INTR_PROP_DESC(ARM_IRQ_SEC_SGI_6, pri, grp, INTR_CFG_EDGE)
 
 #define ARM_MAP_SHARED_RAM		MAP_REGION_FLAT(		\
 						ARM_SHARED_RAM_BASE,	\
