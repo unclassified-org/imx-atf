@@ -36,6 +36,7 @@
 #pragma weak plat_ic_disable_interrupt
 #pragma weak plat_ic_set_interrupt_priority
 #pragma weak plat_ic_set_interrupt_type
+#pragma weak plat_ic_set_spi_routing
 
 CASSERT((INTR_TYPE_S_EL1 == INTR_GROUP1S) &&
 	(INTR_TYPE_NS == INTR_GROUP1NS) &&
@@ -233,6 +234,28 @@ int plat_ic_has_interrupt_type(unsigned int type)
 void plat_ic_set_interrupt_type(unsigned int id, unsigned int type)
 {
 	gicv3_set_interrupt_type(id, plat_my_core_pos(), type);
+}
+
+int plat_ic_set_spi_routing(unsigned int id, unsigned int routing_mode,
+		unsigned long long mpidr)
+{
+	unsigned int irm = 0;
+
+	switch (routing_mode) {
+	case INTR_ROUTING_MODE_PE:
+		if (plat_core_pos_by_mpidr(mpidr) < 0)
+			return -1;
+
+		irm = GICV3_IRM_PE;
+		break;
+	case INTR_ROUTING_MODE_ANY:
+		irm = GICV3_IRM_ANY;
+		break;
+	default:
+		assert(0);
+	}
+
+	return gicv3_set_spi_routing(id, irm, mpidr);
 }
 #endif
 #ifdef IMAGE_BL32

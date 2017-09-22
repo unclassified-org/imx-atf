@@ -7,6 +7,7 @@
 #include <gic_common.h>
 #include <gicv2.h>
 #include <interrupt_mgmt.h>
+#include <platform.h>
 
 /*
  * The following platform GIC functions are weakly defined. They
@@ -30,6 +31,7 @@
 #pragma weak plat_ic_disable_interrupt
 #pragma weak plat_ic_set_interrupt_priority
 #pragma weak plat_ic_set_interrupt_type
+#pragma weak plat_ic_set_spi_routing
 
 /*
  * This function returns the highest priority pending interrupt at
@@ -233,4 +235,27 @@ void plat_ic_set_interrupt_type(unsigned int id, unsigned int type)
 	}
 
 	gicv2_set_interrupt_type(id, gicv2_type);
+}
+
+int plat_ic_set_spi_routing(unsigned int id, unsigned int routing_mode,
+		unsigned long long mpidr)
+{
+	int proc_num = 0;
+
+	switch (routing_mode) {
+	case INTR_ROUTING_MODE_PE:
+		/* GICv2 can only target up to 8 CPUs */
+		proc_num = plat_core_pos_by_mpidr(mpidr);
+		if (proc_num < 0)
+			return -1;
+		break;
+	case INTR_ROUTING_MODE_ANY:
+		/* Bit mask selecting all 8 CPUs as candidates */
+		proc_num = -1;
+		break;
+	default:
+		assert(0);
+	}
+
+	return gicv2_set_spi_routing(id, proc_num);
 }

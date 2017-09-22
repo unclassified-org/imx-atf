@@ -168,6 +168,7 @@ void gicv2_enable_interrupt(unsigned int id);
 void gicv2_disable_interrupt(unsigned int id);
 void gicv2_set_interrupt_priority(unsigned int id, unsigned int priority);
 void gicv2_set_interrupt_type(unsigned int id, unsigned int type);
+int gicv2_set_spi_routing(unsigned int id, int proc_num);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __GICV2_H__ */

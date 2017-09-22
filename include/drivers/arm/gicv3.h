@@ -69,6 +69,9 @@
 #define IROUTER_IRM_SHIFT	31
 #define IROUTER_IRM_MASK	0x1
 
+#define GICV3_IRM_PE		0
+#define GICV3_IRM_ANY		1
+
 /*******************************************************************************
  * GICv3 Re-distributor interface registers & constants
  ******************************************************************************/
@@ -274,6 +277,8 @@ void gicv3_set_interrupt_priority(unsigned int id, unsigned int proc_num,
 		unsigned int priority);
 void gicv3_set_interrupt_type(unsigned int id, unsigned int proc_num,
 		unsigned int group);
+int gicv3_set_spi_routing(unsigned int id, unsigned int irm,
+		unsigned long long mpidr);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __GICV3_H__ */

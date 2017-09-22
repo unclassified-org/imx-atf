@@ -202,3 +202,32 @@ For GICv2:
 - When the build option ``GICV2_G0_FOR_EL3`` is set to ``0`` (the default),
   ``INTR_TYPE_S_EL1`` maps to Group 0. Otherwise, ``INTR_TYPE_EL3`` maps to
   Group 0 interrupt.
+
+Function: int plat_ic_set_spi_routing(unsigned int id, unsigned int routing_mode, unsigned long long mpidr); [optional]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Argument : int
+    Argument : int
+    Argument : unsigned long long
+    Return   : int
+
+This API should set the routing mode of Share Peripheral Interrupt (SPI)
+specified by first parameter ``id`` to that specified by the second parameter
+``routing_mode``.
+
+The ``routing_mode`` parameter can be one of:
+
+- ``INTR_ROUTING_MODE_ANY`` means the interrupt can be routed to any PE in the
+  system. The ``mpidr`` parameter is ignored in this case.
+
+- ``INTR_ROUTING_MODE_PE`` means the interrupt is routed to the PE whose MPIDR
+  value is specified by the parameter ``mpidr``.
+
+The API should return ``0`` if the requested routing was successfully set;
+otherwise return ``-1``.
+
+In case of ARM standard platforms using GIC, the implementation of the API
+writes to the GIC *Target Register* (GICv2) or *Route Register* (GICv3) to set
+the routing.
