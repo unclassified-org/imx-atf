@@ -275,3 +275,36 @@ void gicv2_set_pe_target_mask(unsigned int proc_num)
 	driver_data->target_masks[proc_num] =
 		gicv2_get_cpuif_id(driver_data->gicd_base);
 }
+
+/*******************************************************************************
+ * This function raises the specified SGI to requested targets.
+ *
+ * The proc_num parameter must be the linear index of the target PE in the
+ * system.
+ ******************************************************************************/
+int gicv2_raise_sgi(int sgi_num, int proc_num)
+{
+	unsigned int sgir_val, target;
+
+	assert(driver_data);
+	assert(driver_data->gicd_base);
+
+	/*
+	 * Target masks array must have been supplied, and the core position
+	 * should be valid.
+	 */
+	assert(driver_data->target_masks);
+	assert(proc_num < driver_data->target_masks_num);
+
+	/* Don't raise SGI if the mask hasn't been populated */
+	target = driver_data->target_masks[proc_num];
+	assert(target != 0);
+
+	sgir_val = GICV2_SGIR_VALUE(SGIR_TGT_SPECIFIC, target, sgi_num);
+
+	dmbst();
+	gicd_write_sgir(driver_data->gicd_base, sgir_val);
+	dmbsy();
+
+	return 0;
+}

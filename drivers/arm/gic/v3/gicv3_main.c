@@ -415,3 +415,43 @@ unsigned int gicv3_get_running_priority(void)
 {
 	return read_icc_rpr_el1();
 }
+
+/*******************************************************************************
+ * This function raises the specified Secure Group 0 SGI.
+ *
+ * The target parameter must be a valid MPIDR in the system.
+ ******************************************************************************/
+int gicv3_secure_g0_sgi(int sgi_num, unsigned long long target)
+{
+	int aff3, aff2, aff1, aff0;
+	unsigned int tgt;
+	uint64_t sgi_val;
+
+	/* Verify interrupt number is in the SGI range */
+	assert((sgi_num >= MIN_SGI_ID) && (sgi_num < MIN_PPI_ID));
+
+	/* Extract affinity fields from target */
+	aff0 = MPIDR_AFFLVL0_VAL(target);
+	aff1 = MPIDR_AFFLVL1_VAL(target);
+	aff2 = MPIDR_AFFLVL2_VAL(target);
+	aff3 = MPIDR_AFFLVL3_VAL(target);
+
+	/*
+	 * Make target list from affinity 0. GICv3 supports raising SGI as long
+	 * as affinity 0 value is under 16.
+	 */
+	if (aff0 >= 16)
+		return -1;
+	tgt = BIT(aff0);
+
+	/* Raise SGI to PE specified by its affinity */
+	sgi_val = GICV3_SGIR_VALUE(aff3, aff2, aff1, sgi_num, SGIR_IRM_TO_AFF,
+			tgt);
+
+	dsb();
+	write_icc_sgi0r_el1(sgi_val);
+	isb();
+	dsb();
+
+	return 0;
+}

@@ -147,6 +147,27 @@
 #define IAR1_EL1_INTID_SHIFT		0
 #define IAR1_EL1_INTID_MASK		0xffffff
 
+/* ICC SGI macros */
+#define SGIR_TGT_MASK			0xffff
+#define SGIR_AFF1_SHIFT			16
+#define SGIR_INTID_SHIFT		24
+#define SGIR_INTID_MASK			0xf
+#define SGIR_AFF2_SHIFT			32
+#define SGIR_IRM_SHIFT			40
+#define SGIR_IRM_MASK			0x1
+#define SGIR_AFF3_SHIFT			48
+#define SGIR_AFF_MASK			0xf
+
+#define SGIR_IRM_TO_AFF			0
+
+#define GICV3_SGIR_VALUE(aff3, aff2, aff1, intid, irm, tgt) \
+	((((uint64_t) (aff3) & SGIR_AFF_MASK) << SGIR_AFF3_SHIFT) | \
+	 (((uint64_t) (irm) & SGIR_IRM_MASK) << SGIR_IRM_SHIFT) | \
+	 (((uint64_t) (aff2) & SGIR_AFF_MASK) << SGIR_AFF2_SHIFT) | \
+	 (((intid) & SGIR_INTID_MASK) << SGIR_INTID_SHIFT) | \
+	 (((aff1) & SGIR_AFF_MASK) << SGIR_AFF1_SHIFT) | \
+	 ((tgt) & SGIR_TGT_MASK))
+
 #ifndef __ASSEMBLY__
 
 #include <stdint.h>
@@ -244,6 +265,7 @@ unsigned int gicv3_get_pending_interrupt_id(void);
 unsigned int gicv3_get_interrupt_type(unsigned int id,
 					  unsigned int proc_num);
 unsigned int gicv3_get_running_priority(void);
+int gicv3_secure_g0_sgi(int sgi_num, unsigned long long target);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __GICV3_H__ */

@@ -30,6 +30,7 @@
 #pragma weak plat_ic_is_spi
 #pragma weak plat_ic_is_ppi
 #pragma weak plat_ic_is_sgi
+#pragma weak plat_ic_raise_el3_sgi
 
 CASSERT((INTR_TYPE_S_EL1 == INTR_GROUP1S) &&
 	(INTR_TYPE_NS == INTR_GROUP1NS) &&
@@ -179,6 +180,17 @@ int plat_ic_is_ppi(unsigned int id)
 int plat_ic_is_sgi(unsigned int id)
 {
 	return (id >= MIN_SGI_ID) && (id < MIN_PPI_ID);
+}
+
+void plat_ic_raise_el3_sgi(int sgi_num, unsigned long long target)
+{
+	/* Target must be a valid mpidr in the system */
+	assert(plat_core_pos_by_mpidr(target) >= 0);
+
+	/* Verify that this is a secure EL3 SGI */
+	assert(plat_ic_get_interrupt_type(sgi_num) == INTR_TYPE_EL3);
+
+	gicv3_secure_g0_sgi(sgi_num, target);
 }
 #endif
 #ifdef IMAGE_BL32

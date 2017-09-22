@@ -28,6 +28,19 @@
 #define CPENDSGIR_SHIFT		2
 #define SPENDSGIR_SHIFT		CPENDSGIR_SHIFT
 
+#define SGIR_TGTLSTFLT_SHIFT	24
+#define SGIR_TGTLSTFLT_MASK	0x3
+#define SGIR_TGTLST_SHIFT	16
+#define SGIR_TGTLST_MASK	0xff
+#define SGIR_INTID_MASK		0xf
+
+#define SGIR_TGT_SPECIFIC	0
+
+#define GICV2_SGIR_VALUE(tgt_lst_flt, tgt, intid) \
+	((((tgt_lst_flt) & SGIR_TGTLSTFLT_MASK) << SGIR_TGTLSTFLT_SHIFT) | \
+	 (((tgt) & SGIR_TGTLST_MASK) << SGIR_TGTLST_SHIFT) | \
+	 ((intid) & SGIR_INTID_MASK))
+
 /*******************************************************************************
  * GICv2 specific CPU interface register offsets and constants.
  ******************************************************************************/
@@ -144,6 +157,7 @@ void gicv2_end_of_interrupt(unsigned int id);
 unsigned int gicv2_get_interrupt_group(unsigned int id);
 unsigned int gicv2_get_running_priority(void);
 void gicv2_set_pe_target_mask(unsigned int proc_num);
+int gicv2_raise_sgi(int sgi_num, int proc_num);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __GICV2_H__ */

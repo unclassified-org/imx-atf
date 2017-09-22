@@ -63,3 +63,20 @@ The API should return whether the interrupt ID (first parameter) is categorized
 as a Software Generated Interrupt. Software Generated Interrupts are raised by
 explicit programming by software, and are typically used in inter-PE
 communcation. Secure SGIs are reserved for use by Secure world software.
+
+Function: void plat_ic_raise_el3_sgi(int sgi_num, unsigned long long target); [optional]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Argument : int
+    Argument : unsigned long long
+    Return   : int
+
+This API should raise an EL3 SGI. The The first parameter, ``sgi_num``,
+specifies the ID of the SGI. The second parameter, ``target``, must be the MPIDR
+of the target PE.
+
+In case of ARM standard platforms using GIC, the implementation of the API
+writes to appropriate *SGI Register* in order to raise the EL3 SGI, along with
+necessary barriers.

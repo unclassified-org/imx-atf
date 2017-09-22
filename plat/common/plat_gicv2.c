@@ -24,6 +24,7 @@
 #pragma weak plat_ic_is_spi
 #pragma weak plat_ic_is_ppi
 #pragma weak plat_ic_is_sgi
+#pragma weak plat_ic_raise_el3_sgi
 
 /*
  * This function returns the highest priority pending interrupt at
@@ -146,4 +147,22 @@ int plat_ic_is_ppi(unsigned int id)
 int plat_ic_is_sgi(unsigned int id)
 {
 	return (id >= MIN_SGI_ID) && (id < MIN_PPI_ID);
+}
+
+void plat_ic_raise_el3_sgi(int sgi_num, unsigned long long target)
+{
+#if PLAT_GICV2_G0_FOR_EL3
+	int id;
+
+	/* Target must be a bit mask indicating the PE's ordinal position */
+	id = plat_core_pos_by_mpidr(target);
+	assert(id >= 0);
+
+	/* Verify that this is a secure SGI */
+	assert(plat_ic_get_interrupt_type(sgi_num) == INTR_TYPE_EL3);
+
+	return gicv2_raise_sgi(sgi_num, id);
+#else
+	assert(0);
+#endif
 }
