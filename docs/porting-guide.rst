@@ -2266,6 +2266,10 @@ Standard layer to use GICv2 and the FVP can be configured to use either GICv2 or
 GICv3 depending on the build flag ``FVP_USE_GIC_DRIVER`` (See FVP platform
 specific build options in `User Guide`_ for more details).
 
+See also: `Interrupt Controller Abstraction APIs`__.
+
+.. __: platform-interrupt-controller-API.rst
+
 Function : plat\_interrupt\_type\_to\_line() [mandatory]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

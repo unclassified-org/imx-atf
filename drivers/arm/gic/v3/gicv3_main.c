@@ -406,3 +406,12 @@ unsigned int gicv3_get_interrupt_type(unsigned int id,
 	/* Else it is a Group 0 Secure interrupt */
 	return INTR_GROUP0;
 }
+
+/*******************************************************************************
+ * This function gets the priority of the interrupt the processor is currently
+ * servicing.
+ ******************************************************************************/
+unsigned int gicv3_get_running_priority(void)
+{
+	return read_icc_rpr_el1();
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2017, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -243,7 +243,7 @@ unsigned int gicv3_get_pending_interrupt_type(void);
 unsigned int gicv3_get_pending_interrupt_id(void);
 unsigned int gicv3_get_interrupt_type(unsigned int id,
 					  unsigned int proc_num);
-
+unsigned int gicv3_get_running_priority(void);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __GICV3_H__ */
