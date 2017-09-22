@@ -10,6 +10,7 @@
 #include <gic_common.h>
 #include <gicv3.h>
 #include <mmio.h>
+#include <spinlock.h>
 #include <stdint.h>
 #include "../common/gic_common_private.h"
 
@@ -64,6 +65,8 @@
 	(((((typer_val) >> 56) & MPIDR_AFFLVL_MASK) << MPIDR_AFF3_SHIFT) | \
 	 (((typer_val) >> 32) & 0xffffff))
 #endif
+
+extern spinlock_t gic_lock;
 
 /*******************************************************************************
  * Private GICv3 function prototypes for accessing entire registers.

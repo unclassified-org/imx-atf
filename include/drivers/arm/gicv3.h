@@ -11,9 +11,9 @@
  * GICv3 miscellaneous definitions
  ******************************************************************************/
 /* Interrupt group definitions */
-#define INTR_GROUP1S		0
-#define INTR_GROUP0		1
-#define INTR_GROUP1NS		2
+#define INTR_GROUP1S	0
+#define INTR_GROUP0	1
+#define INTR_GROUP1NS	2
 
 /* Interrupt IDs reported by the HPPIR and IAR registers */
 #define PENDING_G1S_INTID	1020
@@ -272,6 +272,8 @@ void gicv3_enable_interrupt(unsigned int id, unsigned int proc_num);
 void gicv3_disable_interrupt(unsigned int id, unsigned int proc_num);
 void gicv3_set_interrupt_priority(unsigned int id, unsigned int proc_num,
 		unsigned int priority);
+void gicv3_set_interrupt_type(unsigned int id, unsigned int proc_num,
+		unsigned int group);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __GICV3_H__ */

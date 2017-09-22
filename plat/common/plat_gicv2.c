@@ -29,6 +29,7 @@
 #pragma weak plat_ic_enable_interrupt
 #pragma weak plat_ic_disable_interrupt
 #pragma weak plat_ic_set_interrupt_priority
+#pragma weak plat_ic_set_interrupt_type
 
 /*
  * This function returns the highest priority pending interrupt at
@@ -93,7 +94,12 @@ uint32_t plat_ic_get_interrupt_type(uint32_t id)
 	type = gicv2_get_interrupt_group(id);
 
 	/* Assume that all secure interrupts are S-EL1 interrupts */
-	return (type) ? INTR_TYPE_NS : INTR_TYPE_S_EL1;
+	return type == GICV2_INTR_GROUP1 ? INTR_TYPE_NS :
+#if GICV2_G0_FOR_EL3
+		INTR_TYPE_EL3;
+#else
+		INTR_TYPE_S_EL1;
+#endif
 }
 
 /*
@@ -155,7 +161,7 @@ int plat_ic_is_sgi(unsigned int id)
 
 void plat_ic_raise_el3_sgi(int sgi_num, unsigned long long target)
 {
-#if PLAT_GICV2_G0_FOR_EL3
+#if GICV2_G0_FOR_EL3
 	int id;
 
 	/* Target must be a bit mask indicating the PE's ordinal position */
@@ -189,4 +195,42 @@ void plat_ic_disable_interrupt(unsigned int id)
 void plat_ic_set_interrupt_priority(unsigned int id, unsigned int priority)
 {
 	gicv2_set_interrupt_priority(id, priority);
+}
+
+int plat_ic_has_interrupt_type(unsigned int type)
+{
+	switch (type) {
+#if GICV2_G0_FOR_EL3
+	case INTR_TYPE_EL3:
+#else
+	case INTR_TYPE_S_EL1:
+#endif
+	case INTR_TYPE_NS:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+void plat_ic_set_interrupt_type(unsigned int id, unsigned int type)
+{
+	int gicv2_type = 0;
+
+	/* Map canonical interrupt type to GICv2 type */
+	switch (type) {
+#if GICV2_G0_FOR_EL3
+	case INTR_TYPE_EL3:
+#else
+	case INTR_TYPE_S_EL1:
+#endif
+		gicv2_type = GICV2_INTR_GROUP0;
+		break;
+	case INTR_TYPE_NS:
+		gicv2_type = GICV2_INTR_GROUP1;
+		break;
+	default:
+		assert(0);
+	}
+
+	gicv2_set_interrupt_type(id, gicv2_type);
 }

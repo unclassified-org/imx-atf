@@ -9,7 +9,10 @@
 
 #include <gicv2.h>
 #include <mmio.h>
+#include <spinlock.h>
 #include <stdint.h>
+
+extern spinlock_t gic_lock;
 
 /*******************************************************************************
  * Private function prototypes

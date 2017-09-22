@@ -138,3 +138,67 @@ This API should set the priority of the interrupt specified by first parameter
 
 In case of ARM standard platforms using GIC, the implementation of the API
 writes to GIC *Priority Register* set interrupt priority.
+
+Function: int plat_ic_has_interrupt_type(unsigned int type); [optional]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Argument : int
+    Return   : int
+
+This API should return whether the platform supports a given interrupt type. The
+parameter ``type`` shall be one of ``INTR_TYPE_EL3``, ``INTR_TYPE_S_EL1``, or
+``INTR_TYPE_NS``.
+
+In case of ARM standard platforms using GICv3, the implementation of the API
+returns ``1`` for all interrupt types.
+
+In case of ARM standard platforms using GICv2, the API always return ``1`` for
+``INTR_TYPE_NS``. Return value for other types depends on the value of build
+option ``GICV2_G0_FOR_EL3``:
+
+- When set to ``1``, it returns ``1`` for type ``INTR_TYPE_EL3``, indicating
+  support for ``INTR_TYPE_EL3`` interrupts; otherwise returns ``0``.
+
+- When set to ``0`` (the default), it returns ``1`` for type, indicating
+  support for ``INTR_TYPE_S_EL1`` interrupts; otherwise returns ``0``.
+
+Function: void plat_ic_set_interrupt_type(unsigned int id, unsigned int type); [optional]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Argument : int
+    Argument : int
+    Return   : int
+
+This API should set the interrupt specified by first parameter ``id`` to the
+type specified by second parameter ``type``. The ``type`` parameter can be
+either of:
+
+- ``INTR_TYPE_NS``: interrupt is meant to be consumed by the Non-secure world.
+
+- ``INTR_TYPE_S_EL1``: interrupt is meant to be consumed by Secure EL1.
+
+- ``INTR_TYPE_EL3``: interrupt is meant to be consumed by EL3.
+
+In case of ARM standard platforms using GIC, the implementation of the API
+writes to the GIC *Group Register* and *Group Modifier Register* (only GICv3) to
+assign the interrupt to the right group.
+
+For GICv3:
+
+- ``INTR_TYPE_NS`` maps to Group 1 interrupt.
+
+- ``INTR_TYPE_S_EL1`` maps to Secure Group 1 interrupt.
+
+- ``INTR_TYPE_EL3`` maps to Secure Group 0 interrupt.
+
+For GICv2:
+
+- ``INTR_TYPE_NS`` maps to Group 1 interrupt.
+
+- When the build option ``GICV2_G0_FOR_EL3`` is set to ``0`` (the default),
+  ``INTR_TYPE_S_EL1`` maps to Group 0. Otherwise, ``INTR_TYPE_EL3`` maps to
+  Group 0 interrupt.
